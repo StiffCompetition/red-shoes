@@ -189,3 +189,5 @@ main{flex:1;display:flex;flex-direction:column;min-height:0}
 .btn.sm{padding:7px 12px;font-size:13px}
 .idea .addf{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center}
 .idea .addf select,.idea .addf input{border:1.5px solid #cfd8e3;border-radius:10px;padding:7px 8px;font-size:14px}
+
+.idea .acts{display:flex;gap:12px;margin-top:4px;font-size:13px}.idea .idesc{font-size:13px;color:#33465c;margin-top:3px}.idea .meta b.pr{background:#eaf3fb;border-radius:999px;padding:1px 8px}.idea .meta b.bt{color:#1c7a5f}

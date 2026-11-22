@@ -222,9 +222,9 @@ function scoreOf(c,p){
   if(p.dislikes.indexOf("loud")>-1&&/^(nightclub|pub|biergarten)$/.test(c.type))s-=3;
   return s;
 }
-function hasCache(lat,lon,p){try{var c=JSON.parse(localStorage.getItem("rs_pl4_"+lat.toFixed(2)+"_"+lon.toFixed(2)+"_"+p.interests.slice().sort().join("")+"_"+(p.sub||[]).slice().sort().join("")+"_"+(p.extra||"").toLowerCase())||"null");return !!(c&&Date.now()-c.t<864e5&&c.d.length)}catch(e){return false}}
+function hasCache(lat,lon,p){try{var c=JSON.parse(localStorage.getItem("rs_pl5_"+lat.toFixed(2)+"_"+lon.toFixed(2)+"_"+p.interests.slice().sort().join("")+"_"+(p.sub||[]).slice().sort().join("")+"_"+(p.extra||"").toLowerCase())||"null");return !!(c&&Date.now()-c.t<864e5&&c.d.length)}catch(e){return false}}
 async function loadPlaces(lat,lon,p){
-  lat=+lat;lon=+lon;var ck="rs_pl4_"+lat.toFixed(2)+"_"+lon.toFixed(2)+"_"+p.interests.slice().sort().join("")+"_"+(p.sub||[]).slice().sort().join("")+"_"+(p.extra||"").toLowerCase();
+  lat=+lat;lon=+lon;var ck="rs_pl5_"+lat.toFixed(2)+"_"+lon.toFixed(2)+"_"+p.interests.slice().sort().join("")+"_"+(p.sub||[]).slice().sort().join("")+"_"+(p.extra||"").toLowerCase();
   try{var c=JSON.parse(localStorage.getItem(ck)||"null");if(c&&Date.now()-c.t<864e5&&c.d.length)return c.d.map(function(x){x.score=scoreOf(x,p)+(x.cat==="food"&&p.interests.indexOf("food")>-1?1:0);return x})}catch(e){}
   var res=await loadPlacesLive(lat,lon,p);
   if(!res.partial&&res.length)try{localStorage.setItem(ck,JSON.stringify({t:Date.now(),d:res}))}catch(e){}
@@ -233,7 +233,7 @@ async function loadPlaces(lat,lon,p){
 var lateHook=null;
 async function loadPlacesLive(lat,lon,p,wide){
   var want=INTERESTS.filter(function(d){return p.interests.indexOf(d.k)>-1&&d.k!=="food"});
-  var food=IBYK.food,all=want.concat([food]),groups=want.map(function(d){return [d]}).concat([[food]]);
+  var food=IBYK.food,wf=p.interests.indexOf("food")>-1,all=wf?want.concat([food]):want,groups=want.map(function(d){return [d]}).concat(wf?[[food]]:[]);
   var seen={},results=[],pending=groups.length,deadline=false,hook=lateHook;
   function conv(els){var o=[];els.forEach(function(el){var c=norm(el,all);if(c&&!seen[c.id]){seen[c.id]=1;c.score=scoreOf(c,p)+(c.cat==="food"&&p.interests.indexOf("food")>-1?1:0);o.push(c)}});return o}
   function q(g){var nat=g[0].k==="nature";return overpass(oq(lat,lon,wide?(nat?45000:20000):(nat?30000:8000),g,wide?600:(g[0]===food?250:300)))}
@@ -305,7 +305,7 @@ function timeFit(c,t){var b=bestOf(c);return b&&BT[b]?BT[b][1](hrOf(t)):0}
 function build(){
   var p=S.profile,plan=PLANS[p.pace],center=[S.trip.lat,S.trip.lon],used=new Set(S.blocked),items=[];(S.manual||[]).forEach(function(m){used.add(m.id)});
   S.cands.forEach(function(c){if(c.b0==null)c.b0=c.score;c.score=c.b0+boost(c,p)});
-  var slots=plan.slots.slice();if(p.pace!=="verychill")slots.push(["sec",p.pace==="rushed"?"20:00":"17:30"]);
+  var wantFood=p.interests.indexOf("food")>-1,slots=plan.slots.map(function(x){return wantFood||x[0]!=="food"?x:["act",x[1]]});if(p.pace!=="verychill")slots.push(["sec",p.pace==="rushed"?"20:00":"17:30"]);
   var nA=S.cands.filter(function(c){return !c.date&&c.cat!=="food"&&!used.has(c.id)}).length,nF=S.cands.filter(function(c){return !c.date&&c.cat==="food"&&!used.has(c.id)}).length,qA=Math.ceil(nA/S.days.length),qF=Math.ceil(nF/S.days.length);
   S.days.forEach(function(d,di){
     var wx=S.wx[d],rain=wx&&wx.pop>=60,prev=center,cc={},last=null,day=[],gA=0,gF=0,parks=0;
@@ -344,7 +344,7 @@ function rebuild(){build();renderOut();drawMap()}
 function ideasHTML(){
   if(!S.trip||!S.items)return "";
   var inUse=new Set(S.items.map(function(x){return x.id}));
-  var pool=S.cands.filter(function(c){return !inUse.has(c.id)&&!S.blocked.has(c.id)&&!c.date});
+  var pool=S.cands.filter(function(c){return !inUse.has(c.id)&&!S.blocked.has(c.id)&&!c.date&&(S.profile.interests.indexOf("food")>-1||c.cat!=="food")});
   var h='<div class="ideas"><h2>'+esc(T("ideas_h"))+'</h2><div class="muted">'+esc(T("ideas_sub"))+"</div>";
   ORDER.forEach(function(k){
     var g=pool.filter(function(c){return c.cat===k}).sort(function(a,b){return b.score-a.score}).slice(0,8);
@@ -352,7 +352,8 @@ function ideasHTML(){
     h+='<h3 class="igh">'+ico(k,18)+" "+esc(T("int_"+k))+"</h3>";
     g.forEach(function(c){
       var open=S.addId===c.id,pr=priceOf(c),bt=bestOf(c);
-      h+='<div class="idea'+(open?" open":"")+'"><div class="irow"><div><span class="nm">'+esc(c.name)+'</span><div class="meta">'+esc(typeLabel(c.type))+(pr?" &middot; "+esc(pr):"")+(bt?" &middot; "+esc(T("best_p",{w:T(bt)})):"")+'</div></div><button type="button" class="btn sm" data-addopen="'+esc(c.id)+'">'+esc(T("add_sched"))+"</button></div>";
+      var tt=c.tags||{},dist=hav(S.trip.lat,S.trip.lon,c.lat,c.lon);
+      h+='<div class="idea'+(open?" open":"")+'"><div class="irow"><div><span class="nm">'+esc(c.name)+'</span><div class="meta">'+esc(typeLabel(c.type))+" &middot; "+esc(T("from_ctr",{d:fmtKm(dist)}))+(pr?" &middot; <b class=\"pr\">"+esc(pr)+"</b>":"")+(bt?" &middot; <b class=\"bt\">"+esc(T("best_p",{w:T(bt)}))+"</b>":"")+"</div>"+(c.desc?'<div class="idesc">'+esc(String(c.desc).slice(0,140))+"</div>":"")+(tt.opening_hours?'<div class="hrs">'+esc(T("hours_l"))+": "+esc(tt.opening_hours.slice(0,120))+"</div>":"")+'<div class="acts"><a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination='+c.lat+","+c.lon+'">'+esc(T("directions"))+"</a>"+(c.url?'<a target="_blank" rel="noopener" href="'+esc(c.url)+'">'+esc(T("website"))+"</a>":"")+'</div></div><button type="button" class="btn sm" data-addopen="'+esc(c.id)+'">'+esc(T("add_sched"))+"</button></div>";
       if(open){h+='<div class="addf"><select class="ad">'+S.days.map(function(d,i){return '<option value="'+i+'">'+esc(T("day",{n:i+1}))+" &middot; "+esc(fmtDate(d))+"</option>"}).join("")+'</select><input class="at" type="time" value="'+(bt&&BT[bt]?BT[bt][0]:"12:00")+'"><button type="button" class="btn pri sm" data-addgo="'+esc(c.id)+'">'+esc(T("add_go"))+'</button><button type="button" class="btn sm" data-addcancel="1">'+esc(T("add_cancel"))+"</button></div>"}
       h+="</div>";
     });
@@ -447,7 +448,7 @@ var WBAD=/(school|[eé]cole|escuela|university|universit[eé]|universidad|colleg
 var PQ={nature:["park","hiking trail","mirador"],beer:["brewery","craft beer"],lgbtq:["gay bar","lgbtq bar"],secrets:["street art","mural"],food:["restaurant"],music:["live music"],history:["museum"],photo:["viewpoint"],active:["swimming pool"],shopping:["market"],wellness:["hot spring"]};
 async function loadPhoton(lat,lon,p){
   try{
-    var cats=INTERESTS.filter(function(d){return p.interests.indexOf(d.k)>-1||d.k==="food"});
+    var cats=INTERESTS.filter(function(d){return p.interests.indexOf(d.k)>-1});
     var terms=[];cats.forEach(function(d){(PQ[d.k]||[]).forEach(function(q){terms.push([d.k,q])})});
     (p.extra||"").split(",").slice(0,2).forEach(function(q){q=q.trim();if(q.length>2)terms.push(["extra",q])});
     if(p.interests.indexOf("lgbtq")>-1){var X={wellness:["gay sauna","gay spa"],music:["gay club"],food:["gay restaurant"],shopping:["gay shop"]};p.interests.forEach(function(k){(X[k]||[]).forEach(function(q){terms.push(["lgbtq",q])})})}
