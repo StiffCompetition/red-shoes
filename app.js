@@ -305,7 +305,7 @@ function timeFit(c,t){var b=bestOf(c);return b&&BT[b]?BT[b][1](hrOf(t)):0}
 function build(){
   var p=S.profile,plan=PLANS[p.pace],center=[S.trip.lat,S.trip.lon],used=new Set(S.blocked),items=[];(S.manual||[]).forEach(function(m){used.add(m.id)});
   S.cands.forEach(function(c){if(c.b0==null)c.b0=c.score;c.score=c.b0+boost(c,p)});
-  var wantFood=p.interests.indexOf("food")>-1,slots=plan.slots.map(function(x){return wantFood||x[0]!=="food"?x:["act",x[1]]});if(p.pace!=="verychill")slots.push(["sec",p.pace==="rushed"?"20:00":"17:30"]);
+  var wantFood=p.interests.indexOf("food")>-1,slots=plan.slots.map(function(x){return wantFood||x[0]!=="food"?x:["act",x[1]]});if(p.pace!=="verychill"){for(var si=slots.length-1;si>=0;si--)if(slots[si][0]==="act"){slots[si]=["sec",slots[si][1]];break}}
   var nA=S.cands.filter(function(c){return !c.date&&c.cat!=="food"&&!used.has(c.id)}).length,nF=S.cands.filter(function(c){return !c.date&&c.cat==="food"&&!used.has(c.id)}).length,qA=Math.ceil(nA/S.days.length),qF=Math.ceil(nF/S.days.length);
   S.days.forEach(function(d,di){
     var wx=S.wx[d],rain=wx&&wx.pop>=60,prev=center,cc={},last=null,day=[],gA=0,gF=0,parks=0;
