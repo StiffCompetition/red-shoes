@@ -212,6 +212,7 @@ function scoreOf(c,p){
   var t=c.tags||{},s=1;
   if(c.cat==="secrets"){s+=1.5+(t.tourism==="artwork"?1:0)}else{if(t.wikidata)s+=3;if(t.wikipedia)s+=2}if(t.website||t["contact:website"])s+=.5;if(t.opening_hours)s+=.5;if(t.image||t.wikimedia_commons)s+=.5;
   if(p.interests.indexOf(c.cat)>-1)s+=1.5;
+  if(c.cat==="nature"){if(/^(hiking|trailhead|peak|waterfall)$/.test(c.type))s+=2.5;else if(c.type==="park")s-=.5}
   var free=p.budget.indexOf("free")>-1,paid=p.budget.indexOf("mid")>-1||p.budget.indexOf("splurge")>-1;
   if(t.fee==="no"||c.cat==="nature")s+=free?1:0;
   if(t.fee==="yes"&&!paid)s-=2;
@@ -307,11 +308,12 @@ function build(){
   var slots=plan.slots.slice();if(p.pace!=="verychill")slots.push(["sec",p.pace==="rushed"?"20:00":"17:30"]);
   var nA=S.cands.filter(function(c){return !c.date&&c.cat!=="food"&&!used.has(c.id)}).length,nF=S.cands.filter(function(c){return !c.date&&c.cat==="food"&&!used.has(c.id)}).length,qA=Math.ceil(nA/S.days.length),qF=Math.ceil(nF/S.days.length);
   S.days.forEach(function(d,di){
-    var wx=S.wx[d],rain=wx&&wx.pop>=60,prev=center,cc={},last=null,day=[],gA=0,gF=0;
+    var wx=S.wx[d],rain=wx&&wx.pop>=60,prev=center,cc={},last=null,day=[],gA=0,gF=0,parks=0;
     slots.forEach(function(sl){
       var kind=sl[0];if(kind==="food"&&!day.some(function(x){return x.cat!=="food"}))return;if(kind==="food"?gF>=qF&&nF>0:gA>=qA&&nA>0&&!S.cands.some(function(c){return c.date===d&&!used.has(c.id)}))return;
       var pool=S.cands.filter(function(c){
         if(used.has(c.id))return false;if(c.date&&c.date!==d)return false;
+        if(kind!=="food"&&c.type==="park"&&parks>=1&&S.cands.some(function(h){return /^(hiking|trailhead|peak|waterfall)$/.test(h.type)&&!used.has(h.id)}))return false;
         if(kind==="food")return c.cat==="food"&&!c.date;
         if(kind==="eve")return c.cat!=="food";
         if(kind==="sec")return c.cat!=="food"&&(c.cat==="secrets"||!(c.tags&&c.tags.wikidata));
@@ -324,6 +326,7 @@ function build(){
       });
       if(!best)return;
       used.add(best.id);cc[best.cat]=(cc[best.cat]||0)+1;last=best;
+      if(best.type==="park")parks++;
       if(best.cat==="food")gF++;else if(!best.date)gA++;
       var it=Object.assign({},best,{time:best.evtime||(timeFit(best,sl[1])<0?BT[bestOf(best)][0]:sl[1]),dayIdx:di,day:d,distPrev:hav(prev[0],prev[1],best.lat,best.lon),surprise:kind==="sec"});
       day.push(it);prev=[best.lat,best.lon];
