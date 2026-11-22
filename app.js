@@ -30,7 +30,7 @@ var PLANS={
  chill:{n:4,slots:[["act","10:30"],["food","12:45"],["act","15:00"],["food","19:00"]]},
  verychill:{n:2,slots:[["act","11:00"],["food","13:00"]]}
 };
-var DAYCOL=["#ff3d81","#3a5bff","#ff8a00","#12b886","#9b5de5","#0aa5c0","#c4165a"];
+var DAYCOL=["#d62b2b","#1f6fb2","#e0a21b","#1c9a78","#6a4fc2","#0f2a47","#e0662b"];
 
 /* ---------- state ---------- */
 var S={profile:LS.get("profile",null),trip:null,cands:[],items:[],days:[],wx:{},sel:"all",blocked:new Set(),wiz:{step:1,draft:null}};
@@ -231,7 +231,7 @@ function rebuild(){build();renderOut();drawMap()}
 /* ---------- render agenda ---------- */
 function renderOut(){
   var out=$("#out");
-  if(!S.trip||!S.items){out.innerHTML='<div class="empty"><h2>'+esc(T("empty_title"))+"</h2><p>"+esc(T("empty_text"))+"</p></div>";return}
+  if(!S.trip||!S.items){out.innerHTML='<div class="empty"><img class="hero" src="img/rs-mark.png" alt="" width="180" height="118"><h2>'+esc(T("empty_title"))+"</h2><p>"+esc(T("empty_text"))+"</p></div>";return}
   var h='<div class="dtabs"><button data-day="all" class="'+(S.sel==="all"?"on":"")+'">'+esc(T("all_days"))+"</button>"+S.days.map(function(d,i){return '<button data-day="'+i+'" class="'+(S.sel===i?"on":"")+'">'+esc(T("day",{n:i+1}))+"</button>"}).join("")+'</div><div class="tools"><button id="shareBtn">'+esc(T("share"))+'</button><button id="printBtn">'+esc(T("print"))+"</button></div>";
   if(S.items.length<6)h+='<div class="status">'+esc(T("few"))+"</div>";
   S.days.forEach(function(d,di){
@@ -277,7 +277,7 @@ function drawMap(){
     });
     if(line.length>1)L.polyline(line,{color:col,weight:3,opacity:.55,dashArray:"6 6"}).addTo(layer);
   });
-  L.circleMarker([S.trip.lat,S.trip.lon],{radius:5,color:"#14110f",fillColor:"#fff",fillOpacity:1}).addTo(layer);
+  L.circleMarker([S.trip.lat,S.trip.lon],{radius:5,color:"#0f2a47",fillColor:"#fff",fillOpacity:1}).addTo(layer);
   if(pts.length)map.fitBounds(pts,{padding:[40,40],maxZoom:16});else map.setView([S.trip.lat,S.trip.lon],13);
 }
 
