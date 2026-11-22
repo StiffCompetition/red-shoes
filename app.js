@@ -298,6 +298,9 @@ async function geocode(q){
 }
 
 /* ---------- agenda builder ---------- */
+var BT={b_morning:["09:30",function(h){return h<=12?2:h>=15?-3:0}],b_sunset:["17:45",function(h){return h>=16.5?2:h<16?-3:0}],b_eve:["18:30",function(h){return h>=17?2:h<15?-3:0}],b_late:["22:00",function(h){return h>=20?2:h<18?-4:0}],b_wkam:["10:00",function(h){return h<=12?1.5:h>=16?-2:0}],b_wkpm:["15:00",function(h){return h>=13&&h<=17?1:h<11?-1.5:0}],b_day:["11:00",function(h){return h>=19?-2:0}]};
+function hrOf(t){var a=String(t).split(":");return +a[0]+(+a[1]||0)/60}
+function timeFit(c,t){var b=bestOf(c);return b&&BT[b]?BT[b][1](hrOf(t)):0}
 function build(){
   var p=S.profile,plan=PLANS[p.pace],center=[S.trip.lat,S.trip.lon],used=new Set(S.blocked),items=[];
   S.cands.forEach(function(c){if(c.b0==null)c.b0=c.score;c.score=c.b0+boost(c,p)});
@@ -316,13 +319,13 @@ function build(){
       });
       var best=null,bv=-1e9;
       pool.forEach(function(c){
-        var v=c.score+(c.date?3:0)-hav(prev[0],prev[1],c.lat,c.lon)*0.7-((cc[c.cat]||0)>=Math.ceil(plan.n/3)&&kind!=="food"?2:0)-(last&&last.cat===c.cat&&kind!=="food"?1.5:0)-(rain&&(c.cat==="nature"||c.cat==="active")?3:0)+(kind==="eve"&&c.cat==="music"?2:0)+(kind==="sec"&&c.cat==="secrets"?3:0);
+        var v=c.score+(c.date?3:0)-hav(prev[0],prev[1],c.lat,c.lon)*0.7-((cc[c.cat]||0)>=Math.ceil(plan.n/3)&&kind!=="food"?2:0)-(last&&last.cat===c.cat&&kind!=="food"?1.5:0)-(rain&&(c.cat==="nature"||c.cat==="active")?3:0)+(kind==="eve"&&c.cat==="music"?2:0)+(kind==="sec"&&c.cat==="secrets"?3:0)+(c.evtime?0:timeFit(c,sl[1]));
         if(v>bv){bv=v;best=c}
       });
       if(!best)return;
       used.add(best.id);cc[best.cat]=(cc[best.cat]||0)+1;last=best;
       if(best.cat==="food")gF++;else if(!best.date)gA++;
-      var it=Object.assign({},best,{time:best.evtime||sl[1],dayIdx:di,day:d,distPrev:hav(prev[0],prev[1],best.lat,best.lon),surprise:kind==="sec"});
+      var it=Object.assign({},best,{time:best.evtime||(timeFit(best,sl[1])<0?BT[bestOf(best)][0]:sl[1]),dayIdx:di,day:d,distPrev:hav(prev[0],prev[1],best.lat,best.lon),surprise:kind==="sec"});
       day.push(it);prev=[best.lat,best.lon];
     });
     day.sort(function(a,b){return a.time<b.time?-1:a.time>b.time?1:0});
