@@ -101,7 +101,7 @@ $("#wizard").addEventListener("click",function(e){
     if(S.trip&&S.cands.length){rebuild()}
   }
 });
-function styleLabel(p){var f=(p.fav||[]).concat(p.interests.filter(function(k){return (p.fav||[]).indexOf(k)<0})).slice(0,2);return T("style_t",{a:T("st_"+f[0]),b:T("st_"+(f[1]||f[0]))})}
+function styleLabel(p){var f=(p.fav||[]).concat(p.interests.filter(function(k){return (p.fav||[]).indexOf(k)<0})).slice(0,2);return f.length<2?T("style_1",{a:T("st_"+f[0])}):T("style_t",{a:T("st_"+f[0]),b:T("st_"+f[1])})}
 function greet(p){return p.name?T("hi",{n:p.name}):T("yours")}
 function boost(c,p){return ((p.fav||[]).indexOf(c.cat)>-1?1.5:0)+(p.more&&p.more[c.cat]||0)}
 function renderProfileCard(){
@@ -142,7 +142,7 @@ function oq(lat,lon,r,cats,limit){
   var parts=[];cats.forEach(function(d){d.m.forEach(function(p){parts.push("nwr(around:"+r+","+lat+","+lon+')["'+p[0]+'"~"^('+p[1]+')$"]["name"]'+(d.extra||"")+";")})});
   return "[out:json][timeout:20];("+parts.join("")+");out center tags "+limit+";"
 }
-var OVP=["https://overpass-api.de/api/interpreter","https://overpass.private.coffee/api/interpreter","https://overpass.kumi.systems/api/interpreter","https://maps.mail.ru/osm/tools/overpass/api/interpreter"];
+var OVP=["https://overpass-api.de/api/interpreter","https://overpass.private.coffee/api/interpreter","https://overpass.kumi.systems/api/interpreter","https://maps.mail.ru/osm/tools/overpass/api/interpreter","https://overpass.openstreetmap.fr/api/interpreter"];
 function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
 function ovOne(u,q,ms,ctl){
   var tm=setTimeout(function(){ctl.abort()},ms);
@@ -301,7 +301,7 @@ function renderOut(){
     if(wx&&wx.pop>=60)h+='<div class="rainnote">'+esc(T("rain"))+"</div>";
     its.forEach(function(it){
       var t=it.tags||{};
-      h+='<div class="item" data-id="'+esc(it.id)+'"><div class="num" style="background:'+DAYCOL[di%DAYCOL.length]+'">'+it.n+'</div><div class="b"><div class="t1"><span class="time">'+esc(it.time)+'</span><span class="nm">'+esc(it.name)+"</span>"+(it.surprise?'<span class="tag sur">'+esc(T("surprise"))+"</span>":"")+(t.fee==="no"?'<span class="tag">'+esc(T("free_tag"))+"</span>":"")+'</div><div class="meta">'+ico(it.cat,16)+" "+esc(typeLabel(it.type))+(it.venue?" &middot; "+esc(it.venue):"")+(it.distPrev>0.05?" &middot; "+esc(T("away",{d:fmtKm(it.distPrev)})):"")+(t.opening_hours?" &middot; "+esc(t.opening_hours.length>40?t.opening_hours.slice(0,40)+"...":t.opening_hours):"")+'</div><div class="fresh">'+esc(it.src==="tm"?T("src_tm"):it.src==="wiki"?T("src_wiki"):T("src_osm"))+'</div><div class="acts"><a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination='+it.lat+","+it.lon+'">'+esc(T("directions"))+"</a>"+(it.url?'<a target="_blank" rel="noopener" href="'+esc(it.url)+'">'+esc(T("website"))+"</a>":"")+'<button data-more="'+esc(it.cat)+'">'+esc(T("more"))+"</button>"+'<button data-skip="'+esc(it.id)+'">'+esc(T("skip"))+"</button></div></div></div>";
+      h+='<div class="item" data-id="'+esc(it.id)+'"><div class="num" style="background:'+DAYCOL[di%DAYCOL.length]+'">'+it.n+'</div><div class="b"><div class="t1"><span class="time">'+esc(it.time)+'</span><span class="nm">'+esc(it.name)+"</span>"+(it.surprise?'<span class="tag sur">'+esc(T("surprise"))+"</span>":"")+(t.fee==="no"?'<span class="tag">'+esc(T("free_tag"))+"</span>":"")+'</div><div class="meta">'+ico(it.cat,16)+" "+esc(typeLabel(it.type))+(it.venue?" &middot; "+esc(it.venue):"")+(it.distPrev>0.05?" &middot; "+esc(T("away",{d:fmtKm(it.distPrev)})):"")+(t.opening_hours?" &middot; "+esc(t.opening_hours.length>40?t.opening_hours.slice(0,40)+"...":t.opening_hours):"")+'</div><div class="fresh">'+esc(it.src==="tm"?T("src_tm"):it.src==="wiki"?T("src_wiki"):T("src_osm"))+'</div><div class="acts"><a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination='+it.lat+","+it.lon+'">'+esc(T("directions"))+"</a>"+(it.url?'<a target="_blank" rel="noopener" href="'+esc(it.url)+'">'+esc(T("website"))+"</a>":"")+(BOOKCAT.test(it.cat)&&it.src!=="tm"?bookUrls(it).map(function(b){return '<a class="book" target="_blank" rel="sponsored noopener" href="'+esc(b[1])+'">'+esc(T("book"))+" "+esc(b[0])+"</a>"}).join(""):"")+'<button data-more="'+esc(it.cat)+'">'+esc(T("more"))+"</button>"+'<button data-skip="'+esc(it.id)+'">'+esc(T("skip"))+"</button></div></div></div>";
     });
   });
   out.innerHTML=h;
@@ -354,6 +354,39 @@ var WCAT=[
  ["photo",/(tower|tour\b|torre|bridge|pont\b|puente|lighthouse|phare|faro|viewpoint|skyscraper|gratte-ciel|rascacielos|square|place\b|plaza|landmark|fountain|statue|observation|clock)/,"attraction"]
 ];
 var WBAD=/(school|[eé]cole|escuela|university|universit[eé]|universidad|college|hospital|h[oô]pital|hotel|h[oô]tel|street|rue\b|calle|avenue|road|station|gare|estaci[oó]n|neighbou?rhood|quartier|barrio|district|borough|arrondissement|municipality|village|city\b|ville\b|ciudad|metro|subway|airport|company|corporation|apartment|condominium|residential|office|bank\b|shopping street|county|province|region)/;
+
+/* ---------- Photon (Komoot): OpenStreetMap search on separate servers, fast ---------- */
+var PQ={beer:["brewery","craft beer"],lgbtq:["gay bar","lgbtq bar"],secrets:["street art","mural"],food:["restaurant"],music:["live music"],history:["museum"],nature:["park"],photo:["viewpoint"],active:["swimming pool"],shopping:["market"],wellness:["hot spring"]};
+async function loadPhoton(lat,lon,p){
+  try{
+    var cats=INTERESTS.filter(function(d){return p.interests.indexOf(d.k)>-1||d.k==="food"});
+    var terms=[];cats.forEach(function(d){(PQ[d.k]||[]).forEach(function(q){terms.push([d.k,q])})});
+    var res=await Promise.all(terms.slice(0,10).map(function(tq){
+      var ctl=new AbortController(),tm=setTimeout(function(){ctl.abort()},8000);
+      return fetch("https://photon.komoot.io/api/?limit=15&lat="+lat+"&lon="+lon+"&q="+encodeURIComponent(tq[1]),{signal:ctl.signal}).then(function(r){clearTimeout(tm);return r.ok?r.json():{features:[]}}).then(function(j){return {k:tq[0],f:j.features||[]}},function(){clearTimeout(tm);return {k:tq[0],f:[]}});
+    }));
+    var out=[],seen={};
+    res.forEach(function(x){x.f.forEach(function(f){
+      var pr=f.properties||{},g=f.geometry&&f.geometry.coordinates;if(!pr.name||!g||!pr.osm_key)return;
+      if(hav(lat,lon,g[1],g[0])>15)return;
+      var t={name:pr.name},v=pr.osm_value;t[pr.osm_key]=v;
+      if(x.k==="beer"&&/^(pub|bar|brewery|biergarten|restaurant|cafe|nightclub)$/.test(v))t.craft=v==="brewery"?"brewery":"beer";
+      if(x.k==="lgbtq"&&/^(bar|pub|nightclub|club|cafe|restaurant)$/.test(v))t.lgbtq="primary";
+      var c=norm({type:pr.osm_type==="N"?"node":pr.osm_type==="W"?"way":"relation",id:pr.osm_id,lat:g[1],lon:g[0],tags:t},cats);
+      if(c&&!seen[c.id]){seen[c.id]=1;c.src="photon";c.score=scoreOf(c,p)+(c.cat==="food"&&p.interests.indexOf("food")>-1?1:0);out.push(c)}
+    })});
+    return out;
+  }catch(e){return []}
+}
+function dedupe(list){var s={},o=[];list.forEach(function(c){var k=String(c.name||"").toLowerCase().replace(/[^a-z0-9]/g,"")+"|"+c.lat.toFixed(3)+"|"+c.lon.toFixed(3);if(!s[k]){s[k]=1;o.push(c)}});return o}
+/* ---------- commission links (shown only when an ID is set in config.js) ---------- */
+function bookUrls(it){
+  var C=window.RS_CONFIG||{},q=encodeURIComponent((it.name||"")+" "+(S.trip&&(S.trip.short||S.trip.name)||"")),o=[];
+  if(C.viatorPid)o.push(["Viator","https://www.viator.com/searchResults/all?text="+q+"&pid="+encodeURIComponent(C.viatorPid)+"&mcid=42383&medium=link"]);
+  if(C.gygPartnerId)o.push(["GetYourGuide","https://www.getyourguide.com/s/?q="+q+"&partner_id="+encodeURIComponent(C.gygPartnerId)+"&utm_medium=online_publisher"]);
+  return o;
+}
+var BOOKCAT=/^(history|photo|music|active|wellness|secrets|nature|beer|lgbtq)$/;
 async function loadWiki(lat,lon,p){
   try{
     var u="https://"+lang+".wikipedia.org/w/api.php?action=query&generator=geosearch&ggscoord="+lat+"%7C"+lon+"&ggsradius=9000&ggslimit=60&prop=description%7Ccoordinates&colimit=60&format=json&formatversion=2&origin=*";
@@ -365,6 +398,7 @@ async function loadWiki(lat,lon,p){
       if(BADNAME.test(pg.title))return;
       for(var i=0;i<WCAT.length;i++){
         if(WCAT[i][1].test(d)){
+          if(p.interests.indexOf(WCAT[i][0])<0)break;
           var it={id:"wp/"+pg.pageid,name:pg.title,lat:c.lat,lon:c.lon,cat:WCAT[i][0],type:WCAT[i][2],tags:{wikipedia:"1",wikidata:"1"},src:"wiki",url:"https://"+lang+".wikipedia.org/?curid="+pg.pageid,desc:pg.description};
           it.score=scoreOf(it,p);out.push(it);break;
         }
@@ -381,20 +415,20 @@ async function run(place,from,to,quiet){
     map.setView([place.lat,place.lon],13);
     var evP=loadEvents(place.lat,place.lon,from,to,S.profile),wxP=loadWeather(place.lat,place.lon,from,S.days[S.days.length-1]);
     var osmP=loadPlaces(place.lat,place.lon,S.profile).then(function(x){return {ok:true,v:x}},function(e){return {ok:false,e:e}});
-    var wk=await loadWiki(place.lat,place.lon,S.profile);
+    var wk=dedupe([].concat.apply([],await Promise.all([loadPhoton(place.lat,place.lon,S.profile),loadWiki(place.lat,place.lon,S.profile)])));
     var ev=await evP;S.wx=await wxP;
     var osm=null;
-    if(wk.length>=6){
+    if(wk.length>=4){
       /* show Wikipedia places at once, add restaurants and more when OpenStreetMap answers */
       S.cands=wk.concat(ev);build();renderOut();drawMap();
       setStatus("");var st=$("#status");st.hidden=false;st.className="status";st.textContent=T("adding");
       osm=await osmP;
-      if(osm.ok){S.cands=osm.v.concat(wk,ev);build();renderOut();drawMap();setStatus("")}
+      if(osm.ok){S.cands=dedupe(osm.v.concat(wk,ev));build();renderOut();drawMap();setStatus("")}
       else setStatus(T("osm_late"));
     }else{
       osm=await osmP;
       if(!osm.ok&&!wk.length)throw osm.e;
-      S.cands=(osm.ok?osm.v:[]).concat(wk,ev);build();renderOut();drawMap();setStatus("");
+      S.cands=dedupe((osm.ok?osm.v:[]).concat(wk,ev));build();renderOut();drawMap();setStatus("");
     }
     try{history.replaceState(null,"","#q="+encodeURIComponent(place.short||place.name)+"&lat="+place.lat.toFixed(4)+"&lon="+place.lon.toFixed(4)+"&from="+from+"&to="+to)}catch(e){}
     if(window.innerWidth<=760)$(".planwrap").classList.remove("mapmode");
