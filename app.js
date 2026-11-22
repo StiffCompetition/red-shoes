@@ -224,7 +224,9 @@ async function loadPlacesLive(lat,lon,p){
 /* ---------- data: events (optional) ---------- */
 var SEG={"Music":"music","Sports":"active","Arts & Theatre":"history"};
 function tmPrice(r){var p=r&&r[0];if(!p||p.min==null)return "";var c=p.currency||"";return (p.max!=null&&p.max>p.min?Math.round(p.min)+"-"+Math.round(p.max):String(Math.round(p.min)))+" "+c}
-function priceOf(it){var t=it.tags||{};if(it.price)return T("from_p",{p:it.price});if(t.charge&&String(t.charge).length<30)return T("entry_p",{p:t.charge});if(t.fee==="yes")return T("paid_tag");return ""}
+var FREE_T=/^(park|nature_reserve|garden|waterfall|beach|peak|viewpoint|artwork|monument|memorial|ruins|marketplace|cathedral|lighthouse|attraction)$/;
+var TIER={cafe:"$",food_court:"$",pub:"$$",beerbar:"$$",brewery:"$$",biergarten:"$$",restaurant:"$$",museum:"$$",gallery:"$",theatre:"$$",arts_centre:"$",castle:"$$",fort:"$",tower:"$$",hot_spring:"$$",spa:"$$$",sauna:"$$",public_bath:"$$",music_venue:"$$",concert_hall:"$$$",nightclub:"$$",lgbtq:"$$",sports_centre:"$$",stadium:"$$$",water_park:"$$$",ice_rink:"$$",golf_course:"$$$",mall:"$",department_store:"$$"};
+function priceOf(it){var t=it.tags||{};if(it.price)return T("from_p",{p:it.price});if(t.charge&&String(t.charge).length<30)return T("entry_p",{p:t.charge});if(t.fee==="yes")return T("paid_tag");if(t.fee==="no")return T("free_tag");if(it.src==="event")return "";if(FREE_T.test(it.type||"")&&t.fee!=="yes")return T("free_tag");if(TIER[it.type])return T("typ_p",{p:TIER[it.type]});return ""}
 async function loadEvents(lat,lon,from,to,p){
   var key=window.RS_CONFIG&&window.RS_CONFIG.ticketmasterKey;if(!key)return [];
   try{
