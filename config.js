@@ -2,5 +2,5 @@
 window.RS_CONFIG={
   ticketmasterKey:"",   // Ticketmaster Discovery API key (events and tickets, commission via Impact)
   viatorPid:"",         // Viator partner ID (8% on tours)
-  gygPartnerId:""       // GetYourGuide partner ID
+  gygPartnerId:"LXNVLPU"     // GetYourGuide partner ID
 };
