@@ -12,7 +12,7 @@ a{color:var(--red-d);font-weight:600}
 .top{position:sticky;position:-webkit-sticky;top:0;z-index:1200;display:flex;align-items:center;gap:14px;padding:8px 18px;background:#fff;min-height:var(--head);box-shadow:0 2px 12px rgba(15,42,71,.08)}
 .top::after{content:"";position:absolute;left:0;right:0;bottom:0;height:4px;background:linear-gradient(90deg,var(--red) 0 34%,var(--gold) 34% 52%,var(--sky) 52% 100%)}
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
-.brand .logo{height:46px;width:auto;border-radius:10px;transition:transform .25s cubic-bezier(.3,1.6,.5,1)}
+.brand .logo{height:46px;width:auto;transition:transform .25s cubic-bezier(.3,1.6,.5,1)}
 .brand:hover .logo{transform:rotate(-6deg) scale(1.12)}
 .brand .name{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:25px;letter-spacing:-.3px;color:var(--navy)}
 .brand .name b{color:var(--red);font-weight:600}
@@ -136,8 +136,13 @@ main{flex:1;display:flex;flex-direction:column;min-height:0}
 .progtxt{font-weight:700;color:var(--navy);margin-bottom:12px}
 .progbar{position:relative;height:8px;border-radius:99px;background:var(--sky-l);margin:30px 0 14px}
 .progbar i{position:absolute;left:0;top:0;bottom:0;width:30%;border-radius:99px;background:linear-gradient(90deg,var(--red),var(--gold));animation:slide 1.6s ease-in-out infinite}
-.progshoe{position:absolute;bottom:2px;left:0;height:40px;width:auto;animation:walk 1.8s linear infinite,hop .45s ease-in-out infinite;filter:drop-shadow(0 4px 3px rgba(15,42,71,.25));transform-origin:50% 90%}
+.progshoe{position:absolute;bottom:2px;left:0;width:78px;height:32px;animation:walk 3.6s linear infinite}
+.foot{position:absolute;bottom:0;width:36px;height:20px;transform-origin:20% 90%}
+.foot svg{width:100%;height:100%;display:block}
+.f1{left:0;animation:step 1s ease-in-out infinite}
+.f2{left:36px;animation:step 1s ease-in-out infinite;animation-delay:-.5s}
+@keyframes step{0%{transform:translate(0,0) rotate(0)}25%{transform:translate(4px,-9px) rotate(-18deg)}50%{transform:translate(9px,0) rotate(0)}100%{transform:translate(0,0) rotate(0)}}
 .progsub{font-size:12px;color:var(--muted);text-align:right}
 @keyframes slide{0%{left:0;width:12%}50%{width:40%}100%{left:88%;width:12%}}
-@keyframes walk{0%{left:0}100%{left:calc(100% - 56px)}}
+@keyframes walk{0%{left:0}100%{left:calc(100% - 78px)}}
 @keyframes hop{0%,100%{margin-bottom:0;rotate:-5deg}50%{margin-bottom:10px;rotate:5deg}}
