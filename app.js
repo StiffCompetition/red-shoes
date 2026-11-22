@@ -16,7 +16,7 @@ var INTERESTS=[
  {k:"beer",e:"",m:[["craft","brewery|beer"],["microbrewery","yes"],["shop","beer"],["amenity","biergarten"],["brewery",".+"]]},
  {k:"music",e:"🎸",m:[["amenity","music_venue|concert_hall|nightclub"]]},
  {k:"history",e:"🏛️",m:[["tourism","museum|gallery"],["amenity","theatre|arts_centre"],["historic","monument|castle|memorial|ruins|archaeological_site|fort|manor|city_gate"]]},
- {k:"nature",e:"🌳",m:[["leisure","park|nature_reserve|garden"],["natural","waterfall|beach|peak"],["waterway","waterfall"]]},
+ {k:"nature",e:"🌳",m:[["leisure","park|nature_reserve|garden"],["natural","waterfall|beach|peak"],["waterway","waterfall"],["route","hiking|foot"],["highway","trailhead"]]},
  {k:"food",e:"🍽️",m:[["amenity","restaurant|cafe|food_court|pub|biergarten"]],extra:'["opening_hours"]'},
  {k:"active",e:"🏃",m:[["leisure","sports_centre|stadium|water_park|ice_rink|golf_course|marina"]]},
  {k:"shopping",e:"🛍️",m:[["amenity","marketplace"],["shop","mall|department_store"]]},
@@ -67,7 +67,7 @@ function renderAbout(){$("#about").innerHTML="<h1>"+esc(T("about_h"))+"</h1><p><
 
 /* ---------- profile wizard ---------- */
 function newDraft(){var p=S.profile;var d=p?JSON.parse(JSON.stringify(p)):{interests:[],pace:"balanced",budget:["free","mid"],dislikes:[]};d.fav=d.fav||[];d.more=d.more||{};d.name=d.name||"";d.sub=d.sub||[];d.extra=d.extra||"";return d}
-var SUBS={music:["music_venue","nightclub","concert_hall"],history:["museum","gallery","monument","castle"],nature:["park","garden","waterfall","beach","peak"],food:["restaurant","cafe","food_court"],beer:["brewery","beerbar"],lgbtq:["gay_bar","gay_club","gay_sauna","gay_cafe"],secrets:["artwork","ruins","tunnel","water_tower","windmill","bunker","tomb"],photo:["viewpoint","attraction","tower","lighthouse"],active:["sports_centre","stadium","water_park","ice_rink","golf_course"],shopping:["marketplace","mall","department_store"],wellness:["spa","sauna","hot_spring","public_bath"]};
+var SUBS={music:["music_venue","nightclub","concert_hall"],history:["museum","gallery","monument","castle"],nature:["park","garden","waterfall","beach","peak","hiking","trailhead"],food:["restaurant","cafe","food_court"],beer:["brewery","beerbar"],lgbtq:["gay_bar","gay_club","gay_sauna","gay_cafe"],secrets:["artwork","ruins","tunnel","water_tower","windmill","bunker","tomb"],photo:["viewpoint","attraction","tower","lighthouse"],active:["sports_centre","stadium","water_park","ice_rink","golf_course"],shopping:["marketplace","mall","department_store"],wellness:["spa","sauna","hot_spring","public_bath"]};
 function kindL(t){t=t||{};var a=t.amenity||"",l=t.leisure||"";if(/^(bar|pub|biergarten)$/.test(a))return "gay_bar";if(a==="nightclub"||l==="nightclub")return "gay_club";if(/^(sauna|spa)$/.test(l)||a==="spa"||t.shop==="massage")return "gay_sauna";if(/^(cafe|restaurant|fast_food)$/.test(a))return "gay_cafe";return "gay_other"}
 function subOK(cat,type){var o=SUBS[cat],sp=(S.profile&&S.profile.sub)||[];if(!o)return true;var sel=sp.filter(function(x){return o.indexOf(x)>-1});return !sel.length||sel.indexOf(type)>-1}
 function subUI(d){
@@ -235,7 +235,7 @@ async function loadPlacesLive(lat,lon,p){
   var food=IBYK.food,all=want.concat([food]),groups=want.map(function(d){return [d]}).concat([[food]]);
   var seen={},results=[],pending=groups.length,deadline=false,hook=lateHook;
   function conv(els){var o=[];els.forEach(function(el){var c=norm(el,all);if(c&&!seen[c.id]){seen[c.id]=1;c.score=scoreOf(c,p)+(c.cat==="food"&&p.interests.indexOf("food")>-1?1:0);o.push(c)}});return o}
-  function q(g){return overpass(oq(lat,lon,8000,g,g[0]===food?250:300))}
+  function q(g){return overpass(oq(lat,lon,g[0].k==="nature"?30000:8000,g,g[0]===food?250:300))}
   var ps=groups.map(function(g){
     return q(g).catch(function(){return sleep(2500).then(function(){return q(g)})}).catch(function(){return sleep(5000).then(function(){return q(g)})}).then(function(els){
       var c=conv(els);pending--;
@@ -257,7 +257,7 @@ async function loadPlacesLive(lat,lon,p){
 /* ---------- data: events (optional) ---------- */
 var SEG={"Music":"music","Sports":"active","Arts & Theatre":"history"};
 function tmPrice(r){var p=r&&r[0];if(!p||p.min==null)return "";var c=p.currency||"";return (p.max!=null&&p.max>p.min?Math.round(p.min)+"-"+Math.round(p.max):String(Math.round(p.min)))+" "+c}
-var FREE_T=/^(park|nature_reserve|garden|waterfall|beach|peak|viewpoint|artwork|monument|memorial|ruins|marketplace|cathedral|lighthouse|attraction)$/;
+var FREE_T=/^(hiking|trailhead|park|nature_reserve|garden|waterfall|beach|peak|viewpoint|artwork|monument|memorial|ruins|marketplace|cathedral|lighthouse|attraction)$/;
 var TIER={cafe:"$",food_court:"$",pub:"$$",beerbar:"$$",brewery:"$$",biergarten:"$$",restaurant:"$$",museum:"$$",gallery:"$",theatre:"$$",arts_centre:"$",castle:"$$",fort:"$",tower:"$$",hot_spring:"$$",spa:"$$$",sauna:"$$",public_bath:"$$",music_venue:"$$",concert_hall:"$$$",nightclub:"$$",lgbtq:"$$",sports_centre:"$$",stadium:"$$$",water_park:"$$$",ice_rink:"$$",golf_course:"$$$",mall:"$",department_store:"$$"};
 function priceOf(it){var t=it.tags||{};if(it.price)return T("from_p",{p:it.price});if(t.charge&&String(t.charge).length<30)return T("entry_p",{p:t.charge});if(t.fee==="yes")return T("paid_tag");if(t.fee==="no")return T("free_tag");if(it.src==="event")return "";if(FREE_T.test(it.type||"")&&t.fee!=="yes")return T("free_tag");if(TIER[it.type])return T("typ_p",{p:TIER[it.type]});return ""}
 async function loadEvents(lat,lon,from,to,p){
@@ -304,7 +304,7 @@ function build(){
   S.days.forEach(function(d,di){
     var wx=S.wx[d],rain=wx&&wx.pop>=60,prev=center,cc={},last=null,day=[],gA=0,gF=0;
     slots.forEach(function(sl){
-      var kind=sl[0];if(kind==="food"?gF>=qF&&nF>0:gA>=qA&&nA>0&&!S.cands.some(function(c){return c.date===d&&!used.has(c.id)}))return;
+      var kind=sl[0];if(kind==="food"&&!day.some(function(x){return x.cat!=="food"}))return;if(kind==="food"?gF>=qF&&nF>0:gA>=qA&&nA>0&&!S.cands.some(function(c){return c.date===d&&!used.has(c.id)}))return;
       var pool=S.cands.filter(function(c){
         if(used.has(c.id))return false;if(c.date&&c.date!==d)return false;
         if(kind==="food")return c.cat==="food"&&!c.date;
@@ -342,6 +342,7 @@ function renderOut(){
     var wx=S.wx[d],its=S.items.filter(function(x){return x.dayIdx===di});
     h+='<div class="dayhead"><h2>'+esc(T("day",{n:di+1}))+' <span class="muted" style="font-size:14px;font-weight:400">'+esc(fmtDate(d))+"</span></h2>"+(wx?'<span class="wx">'+wxIcon(wx.code)+" "+wx.hi+"° / "+wx.lo+"°</span>":"")+"</div>";
     if(wx&&wx.pop>=60)h+='<div class="rainnote">'+esc(T("rain"))+"</div>";
+    if(!its.length)h+='<div class="status" style="margin:8px 0">'+esc(T("none_day"))+"</div>";
     its.forEach(function(it){
       var t=it.tags||{};
       h+='<div class="item" data-id="'+esc(it.id)+'"><div class="num" style="background:'+DAYCOL[di%DAYCOL.length]+'">'+it.n+'</div><div class="b"><div class="t1"><span class="time">'+esc(it.time)+'</span><span class="nm">'+esc(it.name)+"</span>"+(it.surprise?'<span class="tag sur">'+esc(T("surprise"))+"</span>":"")+(t.fee==="no"?'<span class="tag">'+esc(T("free_tag"))+"</span>":"")+'</div><div class="meta">'+ico(it.cat,16)+(isGay(t,it.name)&&it.cat!=="lgbtq"?ico("lgbtq",16):"")+" "+esc(typeLabel(it.type))+(it.venue?" &middot; "+esc(it.venue):"")+(it.distPrev>0.05?" &middot; "+esc(T("away",{d:fmtKm(it.distPrev)})):"")+(priceOf(it)?' &middot; <b class="pr">'+esc(priceOf(it))+"</b>":"")+(t.opening_hours?" &middot; "+esc(t.opening_hours.length>40?t.opening_hours.slice(0,40)+"...":t.opening_hours):"")+'</div><div class="fresh">'+esc(it.src==="tm"?T("src_tm"):it.src==="wiki"?T("src_wiki"):T("src_osm"))+'</div><div class="acts"><a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination='+it.lat+","+it.lon+'">'+esc(T("directions"))+"</a>"+(it.url?'<a target="_blank" rel="noopener" href="'+esc(it.url)+'">'+esc(T("website"))+"</a>":"")+(BOOKTYPE.test(it.type||"")&&it.src!=="tm"?bookUrls(it).map(function(b){return '<a class="book" target="_blank" rel="sponsored noopener" href="'+esc(b[1])+'">'+esc(T("book"))+" "+esc(b[0])+"</a>"}).join(""):"")+'<button data-more="'+esc(it.cat)+'">'+esc(T("more"))+"</button>"+'<button data-skip="'+esc(it.id)+'">'+esc(T("skip"))+"</button></div></div></div>";
@@ -400,7 +401,7 @@ var WCAT=[
 var WBAD=/(school|[eé]cole|escuela|university|universit[eé]|universidad|college|hospital|h[oô]pital|hotel|h[oô]tel|street|rue\b|calle|avenue|road|station|gare|estaci[oó]n|neighbou?rhood|quartier|barrio|district|borough|arrondissement|municipality|village|city\b|ville\b|ciudad|metro|subway|airport|company|corporation|apartment|condominium|residential|office|bank\b|shopping street|county|province|region)/;
 
 /* ---------- Photon (Komoot): OpenStreetMap search on separate servers, fast ---------- */
-var PQ={beer:["brewery","craft beer"],lgbtq:["gay bar","lgbtq bar"],secrets:["street art","mural"],food:["restaurant"],music:["live music"],history:["museum"],nature:["park"],photo:["viewpoint"],active:["swimming pool"],shopping:["market"],wellness:["hot spring"]};
+var PQ={nature:["park","hiking trail","mirador"],beer:["brewery","craft beer"],lgbtq:["gay bar","lgbtq bar"],secrets:["street art","mural"],food:["restaurant"],music:["live music"],history:["museum"],photo:["viewpoint"],active:["swimming pool"],shopping:["market"],wellness:["hot spring"]};
 async function loadPhoton(lat,lon,p){
   try{
     var cats=INTERESTS.filter(function(d){return p.interests.indexOf(d.k)>-1||d.k==="food"});
