@@ -231,12 +231,12 @@ async function loadPlaces(lat,lon,p){
   return res;
 }
 var lateHook=null;
-async function loadPlacesLive(lat,lon,p){
+async function loadPlacesLive(lat,lon,p,wide){
   var want=INTERESTS.filter(function(d){return p.interests.indexOf(d.k)>-1&&d.k!=="food"});
   var food=IBYK.food,all=want.concat([food]),groups=want.map(function(d){return [d]}).concat([[food]]);
   var seen={},results=[],pending=groups.length,deadline=false,hook=lateHook;
   function conv(els){var o=[];els.forEach(function(el){var c=norm(el,all);if(c&&!seen[c.id]){seen[c.id]=1;c.score=scoreOf(c,p)+(c.cat==="food"&&p.interests.indexOf("food")>-1?1:0);o.push(c)}});return o}
-  function q(g){return overpass(oq(lat,lon,g[0].k==="nature"?30000:8000,g,g[0]===food?250:300))}
+  function q(g){var nat=g[0].k==="nature";return overpass(oq(lat,lon,wide?(nat?45000:20000):(nat?30000:8000),g,wide?600:(g[0]===food?250:300)))}
   var ps=groups.map(function(g){
     return q(g).catch(function(){return sleep(2500).then(function(){return q(g)})}).catch(function(){return sleep(5000).then(function(){return q(g)})}).then(function(els){
       var c=conv(els);pending--;
@@ -303,7 +303,7 @@ var BT={b_morning:["09:30",function(h){return h<=12?2:h>=15?-3:0}],b_sunset:["17
 function hrOf(t){var a=String(t).split(":");return +a[0]+(+a[1]||0)/60}
 function timeFit(c,t){var b=bestOf(c);return b&&BT[b]?BT[b][1](hrOf(t)):0}
 function build(){
-  var p=S.profile,plan=PLANS[p.pace],center=[S.trip.lat,S.trip.lon],used=new Set(S.blocked),items=[];
+  var p=S.profile,plan=PLANS[p.pace],center=[S.trip.lat,S.trip.lon],used=new Set(S.blocked),items=[];(S.manual||[]).forEach(function(m){used.add(m.id)});
   S.cands.forEach(function(c){if(c.b0==null)c.b0=c.score;c.score=c.b0+boost(c,p)});
   var slots=plan.slots.slice();if(p.pace!=="verychill")slots.push(["sec",p.pace==="rushed"?"20:00":"17:30"]);
   var nA=S.cands.filter(function(c){return !c.date&&c.cat!=="food"&&!used.has(c.id)}).length,nF=S.cands.filter(function(c){return !c.date&&c.cat==="food"&&!used.has(c.id)}).length,qA=Math.ceil(nA/S.days.length),qF=Math.ceil(nF/S.days.length);
@@ -331,6 +331,7 @@ function build(){
       var it=Object.assign({},best,{time:best.evtime||(timeFit(best,sl[1])<0?BT[bestOf(best)][0]:sl[1]),dayIdx:di,day:d,distPrev:hav(prev[0],prev[1],best.lat,best.lon),surprise:kind==="sec"});
       day.push(it);prev=[best.lat,best.lon];
     });
+    (S.manual||[]).filter(function(m){return m.di===di&&!S.blocked.has(m.id)}).forEach(function(m){var c=S.cands.filter(function(x){return x.id===m.id})[0];if(c)day.push(Object.assign({},c,{time:m.time,dayIdx:di,day:d,distPrev:0,surprise:false}))});
     day.sort(function(a,b){return a.time<b.time?-1:a.time>b.time?1:0});
     day.forEach(function(x,i){x.n=i+1});
     items=items.concat(day);
@@ -340,6 +341,35 @@ function build(){
 function rebuild(){build();renderOut();drawMap()}
 
 /* ---------- render agenda ---------- */
+function ideasHTML(){
+  if(!S.trip||!S.items)return "";
+  var inUse=new Set(S.items.map(function(x){return x.id}));
+  var pool=S.cands.filter(function(c){return !inUse.has(c.id)&&!S.blocked.has(c.id)&&!c.date});
+  var h='<div class="ideas"><h2>'+esc(T("ideas_h"))+'</h2><div class="muted">'+esc(T("ideas_sub"))+"</div>";
+  ORDER.forEach(function(k){
+    var g=pool.filter(function(c){return c.cat===k}).sort(function(a,b){return b.score-a.score}).slice(0,8);
+    if(!g.length)return;
+    h+='<h3 class="igh">'+ico(k,18)+" "+esc(T("int_"+k))+"</h3>";
+    g.forEach(function(c){
+      var open=S.addId===c.id,pr=priceOf(c),bt=bestOf(c);
+      h+='<div class="idea'+(open?" open":"")+'"><div class="irow"><div><span class="nm">'+esc(c.name)+'</span><div class="meta">'+esc(typeLabel(c.type))+(pr?" &middot; "+esc(pr):"")+(bt?" &middot; "+esc(T("best_p",{w:T(bt)})):"")+'</div></div><button type="button" class="btn sm" data-addopen="'+esc(c.id)+'">'+esc(T("add_sched"))+"</button></div>";
+      if(open){h+='<div class="addf"><select class="ad">'+S.days.map(function(d,i){return '<option value="'+i+'">'+esc(T("day",{n:i+1}))+" &middot; "+esc(fmtDate(d))+"</option>"}).join("")+'</select><input class="at" type="time" value="'+(bt&&BT[bt]?BT[bt][0]:"12:00")+'"><button type="button" class="btn pri sm" data-addgo="'+esc(c.id)+'">'+esc(T("add_go"))+'</button><button type="button" class="btn sm" data-addcancel="1">'+esc(T("add_cancel"))+"</button></div>"}
+      h+="</div>";
+    });
+  });
+  h+='<button type="button" class="btn pri" data-sm="1" style="margin-top:12px">'+esc(T("sm_btn"))+"</button></div>";
+  return h;
+}
+async function searchMore(){
+  if(!S.trip||S.moreBusy)return;S.moreBusy=true;
+  var st=$("#status");st.hidden=false;st.className="status";st.textContent=T("sm_busy");
+  try{
+    var res=await loadPlacesLive(S.trip.lat,S.trip.lon,S.profile,true),n0=S.cands.length;
+    S.cands=dedupe(S.cands.concat(res));rebuild();
+    setStatus("");var s2=$("#status");s2.hidden=false;s2.className="status";s2.textContent=T("sm_done",{n:S.cands.length-n0});
+  }catch(e){setStatus(T("data_fail"),true)}
+  S.moreBusy=false;
+}
 function renderOut(){
   var out=$("#out");
   if(!S.trip||!S.items){out.innerHTML='<div class="empty"><img class="hero" src="img/shoes.png" alt="" width="160" height="115"><h2>'+esc(T("empty_title"))+"</h2><p>"+esc(T("empty_text"))+"</p></div>";return}
@@ -357,13 +387,18 @@ function renderOut(){
     });
   });
   if(/class="pr"/.test(h))h+='<div class="fresh" style="margin:10px 0">'+esc(T("price_guide"))+"</div>";
+  h+=ideasHTML();
   out.innerHTML=h;
 }
 $("#out").addEventListener("click",function(e){
   var b=e.target.closest("button"),a=e.target.closest("a");
   if(b&&b.dataset.day!=null){S.sel=b.dataset.day==="all"?"all":+b.dataset.day;renderOut();drawMap();return}
   if(b&&b.dataset.more){var pr=S.profile;pr.more=pr.more||{};pr.more[b.dataset.more]=Math.min(3,(pr.more[b.dataset.more]||0)+1);LS.set("profile",pr);S.blocked.clear&&0;rebuild();return}
-  if(b&&b.dataset.skip){S.blocked.add(b.dataset.skip);rebuild();return}
+  if(b&&b.dataset.skip){S.blocked.add(b.dataset.skip);S.manual=(S.manual||[]).filter(function(m){return m.id!==b.dataset.skip});rebuild();return}
+  if(b&&b.dataset.addopen){S.addId=b.dataset.addopen;renderOut();var ar=$("#out").querySelector(".idea.open");if(ar)ar.scrollIntoView({block:"center"});return}
+  if(b&&b.dataset.addcancel!=null){S.addId=null;renderOut();return}
+  if(b&&b.dataset.addgo){var row=b.closest(".idea"),di=+row.querySelector(".ad").value,tm=row.querySelector(".at").value||"12:00";S.manual=(S.manual||[]).filter(function(m){return m.id!==b.dataset.addgo});S.manual.push({id:b.dataset.addgo,di:di,time:tm});S.addId=null;S.sel=di;rebuild();return}
+  if(b&&b.dataset.sm!=null){searchMore();return}
   if(b&&b.id==="shareBtn"){shareLink();return}
   if(b&&b.id==="printBtn"){window.print();return}
   if(a)return;
@@ -469,7 +504,7 @@ async function run(place,from,to,quiet){
   if(!S.profile){show("profile");return}
   var btn=$("#goBtn");btn.disabled=true;$("#alts").hidden=true;if(!quiet)beginProg();
   try{
-    S.trip=place;S.days=dayList(from,to);S.blocked=new Set();S.sel="all";
+    S.trip=place;S.days=dayList(from,to);S.blocked=new Set();S.manual=[];S.addId=null;S.sel="all";
     map.setView([place.lat,place.lon],13);
     var evP=loadEvents(place.lat,place.lon,from,to,S.profile),wxP=loadWeather(place.lat,place.lon,from,S.days[S.days.length-1]);
     var myHook=function(c){if(lateHook!==myHook)return;S.cands=dedupe(S.cands.concat(c));build();renderOut();drawMap()};lateHook=myHook;

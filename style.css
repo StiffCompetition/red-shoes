@@ -181,3 +181,11 @@ main{flex:1;display:flex;flex-direction:column;min-height:0}
 
 .item .meta b.bt{color:#1c7a5f;font-weight:600}
 .item .hrs{font-size:12px;color:#5b6b7e;margin-top:2px}
+
+.ideas{margin:22px 0}.igh{font-size:15px;margin:16px 0 6px;color:#0f2a47;display:flex;align-items:center;gap:6px}
+.idea{background:#fff;border:1.5px solid #e1e8f0;border-radius:14px;padding:10px 12px;margin:6px 0}
+.idea .irow{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.idea .nm{font-weight:700;color:#0f2a47}.idea .meta{font-size:12px;color:#5b6b7e}
+.btn.sm{padding:7px 12px;font-size:13px}
+.idea .addf{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center}
+.idea .addf select,.idea .addf input{border:1.5px solid #cfd8e3;border-radius:10px;padding:7px 8px;font-size:14px}
