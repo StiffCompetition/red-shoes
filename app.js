@@ -563,7 +563,7 @@ $("#tripForm").addEventListener("submit",async function(e){
   }catch(err){setStatus(T("geo_fail"),true)}
 });
 $("#alts").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;var g=this._g[+b.dataset.alt];g.short=g.name.split(",")[0];$("#where").value=g.short;run(g,$("#from").value,$("#to").value)});
-$("#quick").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;$("#where").value=b.dataset.city;$("#tripForm").requestSubmit()});
+$("#quick").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;$("#where").value=b.dataset.city;$$("#quick button").forEach(function(x){x.classList.toggle("on",x===b)});var f=$("#from");if(f){f.focus();try{f.showPicker&&f.showPicker()}catch(er){}}});
 $("#nearBtn").addEventListener("click",function(){
   if(!navigator.geolocation){setStatus(T("geo_fail"),true);return}
   beginProg();
