@@ -18,7 +18,7 @@ int_music:"Live music & nightlife",int_history:"Museums & history",int_nature:"N
 need3:"Pick at least 3 interests to continue.",
 where:"Where?",where_ph:"Toronto, Montréal, Vancouver...",when:"When?",from:"From",to:"To",go:"Show me",near:"Near me now",
 yours:"Your profile",edit:"Edit",
-loading:"Finding places...",geo_fail:"Couldn't find that place. Try a city name.",data_fail:"The map data service is busy. Try again in a minute.",few:"Not much is mapped here. This is everything that exists.",
+loading:"Finding places...",geo_fail:"Couldn't find that place. Try a city name.",data_fail:"The map data service is busy. It tried four servers. Tap Show me again.",few:"Not much is mapped here. This is everything that exists.",
 day:"Day {n}",all_days:"All days",skip:"Not for me",directions:"Directions",website:"Website",
 src_osm:"OpenStreetMap, fetched just now",src_tm:"Ticketmaster, fetched just now",free_tag:"Free",away:"{d} from previous stop",
 share:"Copy link",copied:"Link copied",print:"Print",

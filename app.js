@@ -116,11 +116,24 @@ function oq(lat,lon,r,cats,limit){
   var parts=[];cats.forEach(function(d){d.m.forEach(function(p){parts.push("nwr(around:"+r+","+lat+","+lon+')["'+p[0]+'"~"^('+p[1]+')$"]["name"]'+(d.extra||"")+";")})});
   return "[out:json][timeout:30];("+parts.join("")+");out center tags "+limit+";"
 }
-var OVP=["https://overpass-api.de/api/interpreter","https://overpass.kumi.systems/api/interpreter"];
+var OVP=["https://overpass-api.de/api/interpreter","https://overpass.private.coffee/api/interpreter","https://overpass.kumi.systems/api/interpreter","https://maps.mail.ru/osm/tools/overpass/api/interpreter"];
+function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
 async function overpass(q){
-  var err;
-  for(var i=0;i<OVP.length;i++){
-    try{var r=await fetch(OVP[i],{method:"POST",body:"data="+encodeURIComponent(q),headers:{"Content-Type":"application/x-www-form-urlencoded"}});if(!r.ok)throw new Error("HTTP "+r.status);var j=await r.json();return j.elements||[]}catch(e){err=e}
+  var err,start=Math.floor(Math.random()*2);
+  for(var round=0;round<3;round++){
+    for(var k=0;k<OVP.length;k++){
+      var u=OVP[(k+start)%OVP.length];
+      try{
+        var ctl=new AbortController(),tm=setTimeout(function(){ctl.abort()},28000);
+        var r=await fetch(u,{method:"POST",body:"data="+encodeURIComponent(q),headers:{"Content-Type":"application/x-www-form-urlencoded"},signal:ctl.signal});
+        clearTimeout(tm);
+        if(!r.ok)throw new Error("HTTP "+r.status);
+        var j=await r.json();
+        if(j.remark&&/error|timed out|memory/i.test(j.remark)&&!(j.elements&&j.elements.length))throw new Error("remark");
+        return j.elements||[];
+      }catch(e){err=e}
+    }
+    await sleep(1500*(round+1));
   }
   throw err;
 }
@@ -144,14 +157,20 @@ function scoreOf(c,p){
   return s;
 }
 async function loadPlaces(lat,lon,p){
+  lat=+lat;lon=+lon;var ck="rs_pl_"+lat.toFixed(2)+"_"+lon.toFixed(2)+"_"+p.interests.slice().sort().join("");
+  try{var c=JSON.parse(localStorage.getItem(ck)||"null");if(c&&Date.now()-c.t<864e5&&c.d.length)return c.d.map(function(x){x.score=scoreOf(x,p)+(x.cat==="food"&&p.interests.indexOf("food")>-1?1:0);return x})}catch(e){}
+  var res=await loadPlacesLive(lat,lon,p);
+  try{localStorage.setItem(ck,JSON.stringify({t:Date.now(),d:res}))}catch(e){}
+  return res;
+}
+async function loadPlacesLive(lat,lon,p){
   var want=INTERESTS.filter(function(d){return p.interests.indexOf(d.k)>-1&&d.k!=="food"});
   var food=[IBYK.food],all=want.concat(food);
   var out=[],r=6000;
   for(var pass=0;pass<2;pass++){
     var els=[];
-    var a=want.length?await overpass(oq(lat,lon,r,want,500)):[];
-    var b=await overpass(oq(lat,lon,r,food,250));
-    els=a.concat(b);
+    var ab=await Promise.all([want.length?overpass(oq(lat,lon,r,want,500)):Promise.resolve([]),overpass(oq(lat,lon,r,food,250))]);
+    els=ab[0].concat(ab[1]);
     out=[];var seen={};
     els.forEach(function(el){var c=norm(el,all);if(c&&!seen[c.id]){seen[c.id]=1;out.push(c)}});
     if(out.length>=40||pass===1)break;
@@ -293,7 +312,7 @@ async function run(place,from,to){
     build();renderOut();drawMap();setStatus("");
     try{history.replaceState(null,"","#q="+encodeURIComponent(place.short||place.name)+"&lat="+place.lat.toFixed(4)+"&lon="+place.lon.toFixed(4)+"&from="+from+"&to="+to)}catch(e){}
     if(window.innerWidth<=760)$(".planwrap").classList.remove("mapmode");
-  }catch(e){setStatus(T("data_fail"),true)}
+  }catch(e){console.error("rs:",e&&e.message);setStatus(T("data_fail"),true)}
   btn.disabled=false;
 }
 $("#tripForm").addEventListener("submit",async function(e){
