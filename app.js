@@ -96,7 +96,8 @@ $("#wizard").addEventListener("click",function(e){
     if(S.wiz.step===1&&d.interests.length<1){$("#wwarn").textContent=T("need3");return}
     if(S.wiz.step===3&&!d.budget.length)d.budget=["free"];
     if(S.wiz.step<4){S.wiz.step++;renderWizard();return}
-    S.profile=d;LS.set("profile",d);S.wiz={step:1,draft:null};renderProfileCard();show("plan");
+    var oldI=S.profile?S.profile.interests.slice().sort().join():"";S.profile=d;LS.set("profile",d);S.wiz={step:1,draft:null};renderProfileCard();show("plan");
+    if(S.trip&&S.days&&S.days.length&&oldI!==d.interests.slice().sort().join()){run(S.trip,S.days[0],S.days[S.days.length-1]);return}
     if(S.trip&&S.cands.length){rebuild()}
   }
 });
