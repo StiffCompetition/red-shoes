@@ -136,13 +136,13 @@ main{flex:1;display:flex;flex-direction:column;min-height:0}
 .progtxt{font-weight:700;color:var(--navy);margin-bottom:12px}
 .progbar{position:relative;height:8px;border-radius:99px;background:var(--sky-l);margin:30px 0 14px}
 .progbar i{position:absolute;left:0;top:0;bottom:0;width:30%;border-radius:99px;background:linear-gradient(90deg,var(--red),var(--gold));animation:slide 1.6s ease-in-out infinite}
-.progshoe{position:absolute;bottom:2px;left:0;width:78px;height:32px;animation:walk 3.6s linear infinite}
-.foot{position:absolute;bottom:0;width:36px;height:20px;transform-origin:20% 90%}
+.progshoe{position:absolute;bottom:2px;left:0;width:112px;height:32px;animation:walk 3.6s linear infinite}
+.foot{position:absolute;bottom:0;width:52px;height:auto;transform-origin:25% 90%;filter:drop-shadow(0 2px 2px rgba(15,42,71,.25))}
 .foot svg{width:100%;height:100%;display:block}
 .f1{left:0;animation:step 1s ease-in-out infinite}
-.f2{left:36px;animation:step 1s ease-in-out infinite;animation-delay:-.5s}
+.f2{left:58px;animation:step 1s ease-in-out infinite;animation-delay:-.5s}
 @keyframes step{0%{transform:translate(0,0) rotate(0)}25%{transform:translate(4px,-9px) rotate(-18deg)}50%{transform:translate(9px,0) rotate(0)}100%{transform:translate(0,0) rotate(0)}}
 .progsub{font-size:12px;color:var(--muted);text-align:right}
 @keyframes slide{0%{left:0;width:12%}50%{width:40%}100%{left:88%;width:12%}}
-@keyframes walk{0%{left:0}100%{left:calc(100% - 78px)}}
+@keyframes walk{0%{left:0}100%{left:calc(100% - 112px)}}
 @keyframes hop{0%,100%{margin-bottom:0;rotate:-5deg}50%{margin-bottom:10px;rotate:5deg}}
