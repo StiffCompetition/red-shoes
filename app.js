@@ -435,7 +435,7 @@ init();
   function place(){
     var mc=document.querySelector(".mapcol"),wrap=document.querySelector(".planwrap"),side=document.getElementById("side"),out=document.getElementById("out");
     if(!mc||!wrap||!side||!out)return;
-    if(mq.matches){if(mc.parentNode!==side)side.insertBefore(mc,out)}
+    if(mq.matches){if(mc.parentNode!==side||mc.previousElementSibling!==out)side.appendChild(mc)}
     else if(mc.parentNode!==wrap)wrap.appendChild(mc);
     setTimeout(function(){try{map.invalidateSize()}catch(e){}},80);
   }
