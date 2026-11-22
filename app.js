@@ -387,7 +387,7 @@ function gapHTML(g){
 function renderOut(){
   var out=$("#out");
   if(!S.trip||!S.items){out.innerHTML='<div class="empty"><img class="hero" src="img/shoes.png" alt="" width="160" height="115"><h2>'+esc(T("empty_title"))+"</h2><p>"+esc(T("empty_text"))+"</p></div>";return}
-  var h='<div class="dtabs"><button data-day="all" class="'+(S.sel==="all"?"on":"")+'">'+esc(T("all_days"))+"</button>"+S.days.map(function(d,i){return '<button data-day="'+i+'" class="'+(S.sel===i?"on":"")+'">'+esc(T("day",{n:i+1}))+"</button>"}).join("")+'</div><div class="tools"><button id="shareBtn">'+esc(T("share"))+'</button><button id="printBtn">'+esc(T("print"))+'</button><button id="saveBtn">'+esc(T("save_plan"))+"</button></div>";
+  var h='<div class="dtabs"><button data-day="all" class="'+(S.sel==="all"?"on":"")+'">'+esc(T("all_days"))+"</button>"+S.days.map(function(d,i){return '<button data-day="'+i+'" class="'+(S.sel===i?"on":"")+'">'+esc(T("day",{n:i+1}))+"</button>"}).join("")+'</div><div class="tools"><button id="printBtn">'+esc(T("print"))+'</button><button id="saveBtn">'+esc(T("save_plan"))+"</button></div>";
   if(S.items.length+(S.gaps||[]).length<6)h+='<div class="status">'+esc(T("few"))+'</div><button type="button" class="btn pri sm" data-sm="1" style="margin:6px 0 10px">'+esc(T("sm_btn"))+"</button>";
   S.days.forEach(function(d,di){
     if(S.sel!=="all"&&S.sel!==di)return;
