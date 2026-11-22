@@ -272,7 +272,7 @@ $("#out").addEventListener("click",function(e){
   if(b&&b.id==="shareBtn"){shareLink();return}
   if(b&&b.id==="printBtn"){window.print();return}
   if(a)return;
-  var it=e.target.closest(".item");if(it){var m=markers[it.dataset.id];if(m){map.setView(m.getLatLng(),Math.max(map.getZoom(),15));m.openPopup();if(window.innerWidth<=760)$(".planwrap").classList.add("mapmode")}}
+  var it=e.target.closest(".item");if(it){var m=markers[it.dataset.id];if(m){map.setView(m.getLatLng(),Math.max(map.getZoom(),15));m.openPopup();if(window.innerWidth<=760){var mc=$(".mapcol");if(mc)mc.scrollIntoView({block:"center",behavior:"smooth"})}if(0)$(".planwrap").classList.add("mapmode")}}
 });
 
 /* ---------- map ---------- */
@@ -356,4 +356,17 @@ function init(){
   else if(h==="about")show("about");
 }
 init();
+})();
+
+(function(){
+  var mq=window.matchMedia("(max-width:760px)");
+  function place(){
+    var mc=document.querySelector(".mapcol"),wrap=document.querySelector(".planwrap"),side=document.getElementById("side"),out=document.getElementById("out");
+    if(!mc||!wrap||!side||!out)return;
+    if(mq.matches){if(mc.parentNode!==side)side.insertBefore(mc,out)}
+    else if(mc.parentNode!==wrap)wrap.appendChild(mc);
+    setTimeout(function(){try{map.invalidateSize()}catch(e){}},80);
+  }
+  if(mq.addEventListener)mq.addEventListener("change",place);else mq.addListener(place);
+  place();
 })();

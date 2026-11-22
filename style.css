@@ -98,10 +98,11 @@ main{flex:1;display:flex;flex-direction:column;min-height:0}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 20px;border-radius:999px;z-index:2000;box-shadow:var(--shadow)}
 .rs-pin{border:3px solid #fff;border-radius:50%;color:#fff;font-weight:800;font-size:12px;display:grid;place-items:center;box-shadow:0 3px 8px rgba(15,42,71,.4)}
 @media(max-width:760px){
-  .planwrap{flex-direction:column;height:calc(100vh - var(--head));height:calc(100dvh - var(--head))}
-  .side{width:100%;max-width:none;flex:1;border-right:0;order:2}
-  .mapcol{flex:none;height:42vh;order:1}
-  .mobtoggle{display:flex;position:absolute;left:auto;right:10px;top:10px;z-index:500;background:#fff;border-radius:999px;box-shadow:var(--shadow);overflow:hidden}
+  .planwrap{display:block;height:auto}
+  #view-plan.on{display:block}
+  .side{width:100%;max-width:none;overflow:visible;border-right:0}
+  .mapcol{position:relative;height:55vh;min-height:280px;margin:0 0 16px;border-radius:var(--r);overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow)}
+  .mobtoggle{display:none;position:absolute;left:auto;right:10px;top:10px;z-index:500;background:#fff;border-radius:999px;box-shadow:var(--shadow);overflow:hidden}
   .mobtoggle button{border:0;background:none;padding:6px 14px;font-weight:700}
   .mobtoggle button.on{background:var(--red);color:#fff}
   .planwrap.mapmode .mapcol{height:calc(100vh - var(--head));height:calc(100dvh - var(--head))}
@@ -128,3 +129,5 @@ main{flex:1;display:flex;flex-direction:column;min-height:0}
   .wiz{padding:16px}
   h1{font-size:23px}
 }
+.dates label{min-width:0}
+.dates input{min-width:0;max-width:100%}
