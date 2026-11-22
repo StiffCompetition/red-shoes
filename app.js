@@ -225,8 +225,10 @@ function scoreOf(c,p){
 function hasCache(lat,lon,p){try{var c=JSON.parse(localStorage.getItem("rs_pl5_"+lat.toFixed(2)+"_"+lon.toFixed(2)+"_"+p.interests.slice().sort().join("")+"_"+(p.sub||[]).slice().sort().join("")+"_"+(p.extra||"").toLowerCase())||"null");return !!(c&&Date.now()-c.t<864e5&&c.d.length)}catch(e){return false}}
 async function loadPlaces(lat,lon,p){
   lat=+lat;lon=+lon;var ck="rs_pl5_"+lat.toFixed(2)+"_"+lon.toFixed(2)+"_"+p.interests.slice().sort().join("")+"_"+(p.sub||[]).slice().sort().join("")+"_"+(p.extra||"").toLowerCase();
-  try{var c=JSON.parse(localStorage.getItem(ck)||"null");if(c&&Date.now()-c.t<864e5&&c.d.length)return c.d.map(function(x){x.score=scoreOf(x,p)+(x.cat==="food"&&p.interests.indexOf("food")>-1?1:0);return x})}catch(e){}
-  var res=await loadPlacesLive(lat,lon,p);
+  function saved(){try{var c=JSON.parse(localStorage.getItem(ck)||"null");if(c&&Date.now()-c.t<6048e5&&c.d.length)return c.d.map(function(x){x.score=scoreOf(x,p)+(x.cat==="food"&&p.interests.indexOf("food")>-1?1:0);return x})}catch(e){}return null}
+  var res;
+  try{res=await loadPlacesLive(lat,lon,p)}catch(e){var sv=saved();if(sv)return sv;throw e}
+  if(!res.length){var s2=saved();if(s2)return s2}
   if(!res.partial&&res.length)try{localStorage.setItem(ck,JSON.stringify({t:Date.now(),d:res}))}catch(e){}
   return res;
 }
@@ -385,7 +387,7 @@ function gapHTML(g){
 function renderOut(){
   var out=$("#out");
   if(!S.trip||!S.items){out.innerHTML='<div class="empty"><img class="hero" src="img/shoes.png" alt="" width="160" height="115"><h2>'+esc(T("empty_title"))+"</h2><p>"+esc(T("empty_text"))+"</p></div>";return}
-  var h='<div class="dtabs"><button data-day="all" class="'+(S.sel==="all"?"on":"")+'">'+esc(T("all_days"))+"</button>"+S.days.map(function(d,i){return '<button data-day="'+i+'" class="'+(S.sel===i?"on":"")+'">'+esc(T("day",{n:i+1}))+"</button>"}).join("")+'</div><div class="tools"><button id="shareBtn">'+esc(T("share"))+'</button><button id="printBtn">'+esc(T("print"))+"</button></div>";
+  var h='<div class="dtabs"><button data-day="all" class="'+(S.sel==="all"?"on":"")+'">'+esc(T("all_days"))+"</button>"+S.days.map(function(d,i){return '<button data-day="'+i+'" class="'+(S.sel===i?"on":"")+'">'+esc(T("day",{n:i+1}))+"</button>"}).join("")+'</div><div class="tools"><button id="shareBtn">'+esc(T("share"))+'</button><button id="printBtn">'+esc(T("print"))+'</button><button id="saveBtn">'+esc(T("save_plan"))+"</button></div>";
   if(S.items.length+(S.gaps||[]).length<6)h+='<div class="status">'+esc(T("few"))+'</div><button type="button" class="btn pri sm" data-sm="1" style="margin:6px 0 10px">'+esc(T("sm_btn"))+"</button>";
   S.days.forEach(function(d,di){
     if(S.sel!=="all"&&S.sel!==di)return;
@@ -403,6 +405,32 @@ function renderOut(){
   if(/class="pr"/.test(h))h+='<div class="fresh" style="margin:10px 0">'+esc(T("price_guide"))+"</div>";
   out.innerHTML=h;
 }
+/* ---------- saved plans ---------- */
+function getPlans(){return LS.get("plans",[])||[]}
+function savePlan(){
+  if(!S.trip||!S.items.length)return;
+  var pl=getPlans(),id=String(Date.now());
+  var rec={id:id,name:S.trip.name||$("#where").value,t:Date.now(),trip:S.trip,days:S.days,wx:S.wx,items:S.items,cands:S.cands.slice().sort(function(a,b){return b.score-a.score}).slice(0,150)};
+  pl.unshift(rec);
+  while(pl.length>12)pl.pop();
+  try{LS.set("plans",pl)}catch(e){pl.pop();try{LS.set("plans",pl)}catch(e2){}}
+  renderPlans();setStatus(T("plan_saved"));
+}
+function renderPlans(){
+  var el=$("#plans"),pl=getPlans();
+  if(!pl.length){el.hidden=true;el.innerHTML="";return}
+  el.hidden=false;
+  el.innerHTML='<div class="lbl">'+esc(T("plans_h"))+"</div>"+pl.map(function(r){var d=r.days||[];return '<div class="plrow"><div><b>'+esc(r.name)+'</b><div class="muted">'+(d.length?esc(fmtDate(d[0]))+(d.length>1?" - "+esc(fmtDate(d[d.length-1])):""):"")+" &middot; "+r.items.length+'</div></div><div class="plb"><button type="button" class="btn pri sm" data-plopen="'+r.id+'">'+esc(T("plan_open"))+'</button><button type="button" class="btn sm" data-pldel="'+r.id+'">'+esc(T("plan_del"))+"</button></div></div>"}).join("");
+}
+$("#plans").addEventListener("click",function(e){
+  var b=e.target.closest("button");if(!b)return;
+  if(b.dataset.pldel){if(!confirm(T("plan_del_q")))return;LS.set("plans",getPlans().filter(function(r){return r.id!==b.dataset.pldel}));renderPlans();return}
+  if(b.dataset.plopen){var r=getPlans().filter(function(x){return x.id===b.dataset.plopen})[0];if(!r)return;
+    S.trip=r.trip;S.days=r.days;S.wx=r.wx||{};S.items=r.items;S.cands=r.cands||[];S.blocked=new Set();S.manual=[];S.gaps=[];S.sel="all";
+    $("#where").value=r.name;$("#from").value=r.days[0];$("#to").value=r.days[r.days.length-1];
+    renderOut();drawMap();setStatus("");var o=$("#out");if(o)o.scrollIntoView({behavior:"smooth",block:"start"})}
+});
+renderPlans();
 $("#out").addEventListener("click",function(e){
   var b=e.target.closest("button"),a=e.target.closest("a");
   if(b&&b.dataset.day!=null){S.sel=b.dataset.day==="all"?"all":+b.dataset.day;renderOut();drawMap();return}
@@ -419,6 +447,7 @@ $("#out").addEventListener("click",function(e){
   if(b&&b.dataset.addgo){var row=b.closest(".idea"),di=+row.querySelector(".ad").value,tm=row.querySelector(".at").value||"12:00";S.manual=(S.manual||[]).filter(function(m){return m.id!==b.dataset.addgo});S.manual.push({id:b.dataset.addgo,di:di,time:tm});S.addId=null;S.sel=di;rebuild();return}
   if(b&&b.dataset.sm!=null){searchMore();return}
   if(b&&b.id==="shareBtn"){shareLink();return}
+  if(b&&b.id==="saveBtn"){savePlan();return}
   if(b&&b.id==="printBtn"){window.print();return}
   if(a)return;
   var it=e.target.closest(".item");if(it){var m=markers[it.dataset.id];if(m){map.setView(m.getLatLng(),Math.max(map.getZoom(),15));m.openPopup();if(window.innerWidth<=760){var mc=$(".mapcol");if(mc)mc.scrollIntoView({block:"center",behavior:"smooth"})}if(0)$(".planwrap").classList.add("mapmode")}}
