@@ -220,6 +220,8 @@ async function loadPlacesLive(lat,lon,p){
 
 /* ---------- data: events (optional) ---------- */
 var SEG={"Music":"music","Sports":"active","Arts & Theatre":"history"};
+function tmPrice(r){var p=r&&r[0];if(!p||p.min==null)return "";var c=p.currency||"";return (p.max!=null&&p.max>p.min?Math.round(p.min)+"-"+Math.round(p.max):String(Math.round(p.min)))+" "+c}
+function priceOf(it){var t=it.tags||{};if(it.price)return T("from_p",{p:it.price});if(t.charge&&String(t.charge).length<30)return T("entry_p",{p:t.charge});if(t.fee==="yes")return T("paid_tag");return ""}
 async function loadEvents(lat,lon,from,to,p){
   var key=window.RS_CONFIG&&window.RS_CONFIG.ticketmasterKey;if(!key)return [];
   try{
@@ -231,7 +233,7 @@ async function loadEvents(lat,lon,from,to,p){
       var st=e.dates&&e.dates.status&&e.dates.status.code;if(/cancel|postpone|offsale/i.test(st||""))return;
       if(BADNAME.test(e.name||"")||/18\+|adult/i.test(e.name||""))return;
       var v=e._embedded&&e._embedded.venues&&e._embedded.venues[0],loc=v&&v.location;if(!loc)return;
-      out.push({id:"tm/"+e.id,name:e.name,lat:+loc.latitude,lon:+loc.longitude,cat:cat,type:"event",tags:{},src:"tm",url:e.url,date:e.dates.start.localDate,evtime:(e.dates.start.localTime||"").slice(0,5),score:6,venue:v.name});
+      out.push({id:"tm/"+e.id,name:e.name,lat:+loc.latitude,lon:+loc.longitude,cat:cat,type:"event",tags:{},src:"tm",url:e.url,date:e.dates.start.localDate,evtime:(e.dates.start.localTime||"").slice(0,5),score:6,venue:v.name,price:tmPrice(e.priceRanges)});
     });
     return out;
   }catch(e){return []}
@@ -301,7 +303,7 @@ function renderOut(){
     if(wx&&wx.pop>=60)h+='<div class="rainnote">'+esc(T("rain"))+"</div>";
     its.forEach(function(it){
       var t=it.tags||{};
-      h+='<div class="item" data-id="'+esc(it.id)+'"><div class="num" style="background:'+DAYCOL[di%DAYCOL.length]+'">'+it.n+'</div><div class="b"><div class="t1"><span class="time">'+esc(it.time)+'</span><span class="nm">'+esc(it.name)+"</span>"+(it.surprise?'<span class="tag sur">'+esc(T("surprise"))+"</span>":"")+(t.fee==="no"?'<span class="tag">'+esc(T("free_tag"))+"</span>":"")+'</div><div class="meta">'+ico(it.cat,16)+" "+esc(typeLabel(it.type))+(it.venue?" &middot; "+esc(it.venue):"")+(it.distPrev>0.05?" &middot; "+esc(T("away",{d:fmtKm(it.distPrev)})):"")+(t.opening_hours?" &middot; "+esc(t.opening_hours.length>40?t.opening_hours.slice(0,40)+"...":t.opening_hours):"")+'</div><div class="fresh">'+esc(it.src==="tm"?T("src_tm"):it.src==="wiki"?T("src_wiki"):T("src_osm"))+'</div><div class="acts"><a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination='+it.lat+","+it.lon+'">'+esc(T("directions"))+"</a>"+(it.url?'<a target="_blank" rel="noopener" href="'+esc(it.url)+'">'+esc(T("website"))+"</a>":"")+(BOOKCAT.test(it.cat)&&it.src!=="tm"?bookUrls(it).map(function(b){return '<a class="book" target="_blank" rel="sponsored noopener" href="'+esc(b[1])+'">'+esc(T("book"))+" "+esc(b[0])+"</a>"}).join(""):"")+'<button data-more="'+esc(it.cat)+'">'+esc(T("more"))+"</button>"+'<button data-skip="'+esc(it.id)+'">'+esc(T("skip"))+"</button></div></div></div>";
+      h+='<div class="item" data-id="'+esc(it.id)+'"><div class="num" style="background:'+DAYCOL[di%DAYCOL.length]+'">'+it.n+'</div><div class="b"><div class="t1"><span class="time">'+esc(it.time)+'</span><span class="nm">'+esc(it.name)+"</span>"+(it.surprise?'<span class="tag sur">'+esc(T("surprise"))+"</span>":"")+(t.fee==="no"?'<span class="tag">'+esc(T("free_tag"))+"</span>":"")+'</div><div class="meta">'+ico(it.cat,16)+" "+esc(typeLabel(it.type))+(it.venue?" &middot; "+esc(it.venue):"")+(it.distPrev>0.05?" &middot; "+esc(T("away",{d:fmtKm(it.distPrev)})):"")+(priceOf(it)?' &middot; <b class="pr">'+esc(priceOf(it))+"</b>":"")+(t.opening_hours?" &middot; "+esc(t.opening_hours.length>40?t.opening_hours.slice(0,40)+"...":t.opening_hours):"")+'</div><div class="fresh">'+esc(it.src==="tm"?T("src_tm"):it.src==="wiki"?T("src_wiki"):T("src_osm"))+'</div><div class="acts"><a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination='+it.lat+","+it.lon+'">'+esc(T("directions"))+"</a>"+(it.url?'<a target="_blank" rel="noopener" href="'+esc(it.url)+'">'+esc(T("website"))+"</a>":"")+(BOOKCAT.test(it.cat)&&it.src!=="tm"?bookUrls(it).map(function(b){return '<a class="book" target="_blank" rel="sponsored noopener" href="'+esc(b[1])+'">'+esc(T("book"))+" "+esc(b[0])+"</a>"}).join(""):"")+'<button data-more="'+esc(it.cat)+'">'+esc(T("more"))+"</button>"+'<button data-skip="'+esc(it.id)+'">'+esc(T("skip"))+"</button></div></div></div>";
     });
   });
   out.innerHTML=h;
