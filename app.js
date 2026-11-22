@@ -12,6 +12,8 @@ function typeLabel(t){var m=I18N[lang].t[t]||I18N.en.t[t];return m||String(t||""
 
 /* ---------- interests ---------- */
 var INTERESTS=[
+ {k:"lgbtq",e:"",m:[["lgbtq","primary|yes|only"],["gay","yes"]]},
+ {k:"beer",e:"",m:[["craft","brewery|beer"],["microbrewery","yes"],["shop","beer"],["amenity","biergarten"],["brewery",".+"]]},
  {k:"music",e:"🎸",m:[["amenity","music_venue|concert_hall|nightclub"]]},
  {k:"history",e:"🏛️",m:[["tourism","museum|gallery"],["amenity","theatre|arts_centre"],["historic","monument|castle|memorial|ruins|archaeological_site|fort|manor|city_gate"]]},
  {k:"nature",e:"🌳",m:[["leisure","park|nature_reserve|garden"],["natural","waterfall|beach|peak"],["waterway","waterfall"]]},
@@ -19,10 +21,12 @@ var INTERESTS=[
  {k:"active",e:"🏃",m:[["leisure","sports_centre|stadium|water_park|ice_rink|golf_course|marina"]]},
  {k:"shopping",e:"🛍️",m:[["amenity","marketplace"],["shop","mall|department_store"]]},
  {k:"photo",e:"📸",m:[["tourism","viewpoint|attraction"],["man_made","tower|lighthouse"],["building","cathedral|castle"]]},
- {k:"wellness",e:"🧘",m:[["natural","hot_spring"],["leisure","spa|sauna"],["amenity","public_bath"]]}
+ {k:"wellness",e:"🧘",m:[["natural","hot_spring"],["leisure","spa|sauna"],["amenity","public_bath"]]},
+ {k:"secrets",e:"",m:[["tourism","artwork"],["historic","wayside_shrine|tomb|bunker|cannon|ruins|battlefield"],["man_made","tunnel|water_tower|windmill|watermill"]]}
 ];
+var ORDER=["music","history","nature","food","beer","lgbtq","secrets","photo","active","shopping","wellness"];
 var IBYK={};INTERESTS.forEach(function(d){IBYK[d.k]=d;d.re=d.m.map(function(p){return [p[0],new RegExp("^("+p[1]+")$")]})});
-function classify(t,cats){for(var i=0;i<cats.length;i++){var d=cats[i];for(var j=0;j<d.re.length;j++){var v=t[d.re[j][0]];if(v&&d.re[j][1].test(v))return {cat:d.k,type:v}}}return null}
+function classify(t,cats){for(var i=0;i<cats.length;i++){var d=cats[i];for(var j=0;j<d.re.length;j++){var v=t[d.re[j][0]];if(v&&d.re[j][1].test(v)){var ty=v;if(d.k==="lgbtq")ty="lgbtq";else if(d.k==="beer")ty=(t.craft==="brewery"||t.microbrewery==="yes"||t.brewery)?"brewery":"beerbar";else if(d.k==="secrets"&&t.tourism==="artwork")ty="artwork";return {cat:d.k,type:ty}}}}return null}
 
 var PLANS={
  rushed:{n:8,slots:[["act","09:00"],["act","10:30"],["food","12:30"],["act","14:00"],["act","15:30"],["act","17:00"],["food","19:00"],["eve","21:00"]]},
@@ -62,12 +66,12 @@ $("#langSel").addEventListener("change",function(){lang=this.value;LS.set("lang"
 function renderAbout(){$("#about").innerHTML="<h1>"+esc(T("about_h"))+"</h1><p><b>"+esc(T("tagline"))+"</b></p>"+T("about_p").map(function(p){return "<p>"+esc(p)+"</p>"}).join("")+'<p class="muted">&copy; OpenStreetMap contributors &middot; Open-Meteo</p>'}
 
 /* ---------- profile wizard ---------- */
-function newDraft(){var p=S.profile;return p?JSON.parse(JSON.stringify(p)):{interests:[],pace:"balanced",budget:["free","mid"],dislikes:[]}}
+function newDraft(){var p=S.profile;var d=p?JSON.parse(JSON.stringify(p)):{interests:[],pace:"balanced",budget:["free","mid"],dislikes:[]};d.fav=d.fav||[];d.more=d.more||{};d.name=d.name||"";return d}
 function renderWizard(){
   if(!S.wiz.draft)S.wiz.draft=newDraft();
   var d=S.wiz.draft,s=S.wiz.step,h='<div class="wiz"><div class="stepno">'+esc(T("step",{n:s}))+'</div>';
   if(s===1){
-    h+="<h1>"+esc(T("wiz_title"))+"</h1><h2>"+esc(T("q1"))+"</h2><div class=\"muted\">"+esc(T("q1h"))+"</div><div class=\"grid\">"+INTERESTS.map(function(i){return '<button type="button" class="opt'+(d.interests.indexOf(i.k)>-1?" on":"")+'" data-int="'+i.k+'"><span class="em">'+i.e+"</span><span>"+esc(T("int_"+i.k))+"</span></button>"}).join("")+"</div>";
+    h+="<h1>"+esc(T("wiz_title"))+'</h1><label class="nmf"><span>'+esc(T("ask_name"))+'</span><input id="pname" maxlength="24" autocomplete="given-name" value="'+esc(d.name||"")+'"></label><h2>'+esc(T("q1"))+'</h2><div class="muted">'+esc(T("q1h"))+'</div><div class="grid">'+ORDER.map(function(k){var i=IBYK[k],on=d.interests.indexOf(k)>-1,fv=(d.fav||[]).indexOf(k)>-1;return '<button type="button" class="opt card'+(on?" on":"")+'" data-int="'+k+'"><span class="icw">'+ico(k,46)+'</span><span class="ct"><b>'+esc(T("int_"+k))+"</b><small>"+esc(T("im_"+k))+"</small></span>"+(on?'<span class="fav'+(fv?" on":"")+'" data-fav="'+k+'" role="button" aria-label="favourite">&#9733;</span>':"")+"</button>"}).join("")+"</div>"+(d.interests.length?'<div class="muted fvh">'+esc(T("fav_hint"))+"</div>":"");
   }else if(s===2){
     h+="<h2>"+esc(T("q2"))+'</h2><div class="col">'+["rushed","balanced","chill","verychill"].map(function(p){return '<button type="button" class="opt'+(d.pace===p?" on":"")+'" data-pace="'+p+'"><span><b>'+esc(T("pace_"+p))+"</b><small>"+esc(T("pace_"+p+"_d"))+"</small></span></button>"}).join("")+"</div>";
   }else if(s===3){
@@ -78,10 +82,12 @@ function renderWizard(){
   h+='<div class="warn" id="wwarn"></div><div class="wizbtns"><button class="btn" id="wBack"'+(s===1?" disabled":"")+">"+esc(T("back"))+'</button><button class="btn pri" id="wNext">'+esc(s===4?T("save"):T("next"))+"</button></div></div>";
   $("#wizard").innerHTML=h;
 }
+$("#wizard").addEventListener("input",function(e){if(e.target.id==="pname"&&S.wiz.draft)S.wiz.draft.name=e.target.value.trim()});
 $("#wizard").addEventListener("click",function(e){
   var d=S.wiz.draft,b=e.target.closest("button");if(!b||!d)return;
+  var fb=e.target.closest("[data-fav]");if(fb){var k=fb.dataset.fav,fi=d.fav.indexOf(k);if(fi>-1)d.fav.splice(fi,1);else{if(d.fav.length>=3)d.fav.shift();d.fav.push(k)}renderWizard();return}
   function tog(a,v){var i=a.indexOf(v);if(i>-1)a.splice(i,1);else a.push(v)}
-  if(b.dataset.int){tog(d.interests,b.dataset.int);renderWizard();return}
+  if(b.dataset.int){tog(d.interests,b.dataset.int);d.fav=d.fav.filter(function(x){return d.interests.indexOf(x)>-1});renderWizard();return}
   if(b.dataset.pace){d.pace=b.dataset.pace;renderWizard();return}
   if(b.dataset.bud){tog(d.budget,b.dataset.bud);renderWizard();return}
   if(b.dataset.dis){tog(d.dislikes,b.dataset.dis);renderWizard();return}
@@ -94,10 +100,13 @@ $("#wizard").addEventListener("click",function(e){
     if(S.trip&&S.cands.length){rebuild()}
   }
 });
+function styleLabel(p){var f=(p.fav||[]).concat(p.interests.filter(function(k){return (p.fav||[]).indexOf(k)<0})).slice(0,2);return T("style_t",{a:T("st_"+f[0]),b:T("st_"+(f[1]||f[0]))})}
+function greet(p){return p.name?T("hi",{n:p.name}):T("yours")}
+function boost(c,p){return ((p.fav||[]).indexOf(c.cat)>-1?1.5:0)+(p.more&&p.more[c.cat]||0)}
 function renderProfileCard(){
   var el=$("#profileCard");if(!S.profile){el.hidden=true;return}
   var p=S.profile;el.hidden=false;
-  el.innerHTML='<div class="t"><b>'+esc(T("yours"))+"</b>"+p.interests.map(function(k){return IBYK[k].e}).join(" ")+" &middot; "+esc(T("pace_"+p.pace))+" &middot; "+p.budget.map(function(b){return esc(T("bud_"+b))}).join(", ")+'</div><button class="btn" data-nav="profile">'+esc(T("edit"))+"</button>";
+  el.innerHTML='<div class="t"><b>'+esc(greet(p))+'</b><span class="stl">'+esc(styleLabel(p))+'</span><span class="ics">'+p.interests.map(function(k){return ico(k,22)}).join("")+"</span>"+" &middot; "+esc(T("pace_"+p.pace))+" &middot; "+p.budget.map(function(b){return esc(T("bud_"+b))}).join(", ")+'</div><button class="btn" data-nav="profile">'+esc(T("edit"))+"</button>";
 }
 
 /* ---------- helpers ---------- */
@@ -172,7 +181,7 @@ function norm(el,cats){
 }
 function scoreOf(c,p){
   var t=c.tags||{},s=1;
-  if(t.wikidata)s+=3;if(t.wikipedia)s+=2;if(t.website||t["contact:website"])s+=.5;if(t.opening_hours)s+=.5;if(t.image||t.wikimedia_commons)s+=.5;
+  if(c.cat==="secrets"){s+=1.5+(t.tourism==="artwork"?1:0)}else{if(t.wikidata)s+=3;if(t.wikipedia)s+=2}if(t.website||t["contact:website"])s+=.5;if(t.opening_hours)s+=.5;if(t.image||t.wikimedia_commons)s+=.5;
   if(p.interests.indexOf(c.cat)>-1)s+=1.5;
   var free=p.budget.indexOf("free")>-1,paid=p.budget.indexOf("mid")>-1||p.budget.indexOf("splurge")>-1;
   if(t.fee==="no"||c.cat==="nature")s+=free?1:0;
@@ -248,23 +257,26 @@ async function geocode(q){
 /* ---------- agenda builder ---------- */
 function build(){
   var p=S.profile,plan=PLANS[p.pace],center=[S.trip.lat,S.trip.lon],used=new Set(S.blocked),items=[];
+  S.cands.forEach(function(c){if(c.b0==null)c.b0=c.score;c.score=c.b0+boost(c,p)});
+  var slots=plan.slots.slice();if(p.pace!=="verychill")slots.push(["sec",p.pace==="rushed"?"20:00":"17:30"]);
   S.days.forEach(function(d,di){
     var wx=S.wx[d],rain=wx&&wx.pop>=60,prev=center,cc={},last=null,day=[];
-    plan.slots.forEach(function(sl){
+    slots.forEach(function(sl){
       var kind=sl[0],pool=S.cands.filter(function(c){
         if(used.has(c.id))return false;if(c.date&&c.date!==d)return false;
         if(kind==="food")return c.cat==="food"&&!c.date;
         if(kind==="eve")return c.cat!=="food";
+        if(kind==="sec")return c.cat!=="food"&&(c.cat==="secrets"||!(c.tags&&c.tags.wikidata));
         return c.cat!=="food";
       });
       var best=null,bv=-1e9;
       pool.forEach(function(c){
-        var v=c.score+(c.date?3:0)-hav(prev[0],prev[1],c.lat,c.lon)*0.7-((cc[c.cat]||0)>=Math.ceil(plan.n/3)&&kind!=="food"?2:0)-(last&&last.cat===c.cat&&kind!=="food"?1.5:0)-(rain&&(c.cat==="nature"||c.cat==="active")?3:0)+(kind==="eve"&&c.cat==="music"?2:0);
+        var v=c.score+(c.date?3:0)-hav(prev[0],prev[1],c.lat,c.lon)*0.7-((cc[c.cat]||0)>=Math.ceil(plan.n/3)&&kind!=="food"?2:0)-(last&&last.cat===c.cat&&kind!=="food"?1.5:0)-(rain&&(c.cat==="nature"||c.cat==="active")?3:0)+(kind==="eve"&&c.cat==="music"?2:0)+(kind==="sec"&&c.cat==="secrets"?3:0);
         if(v>bv){bv=v;best=c}
       });
       if(!best)return;
       used.add(best.id);cc[best.cat]=(cc[best.cat]||0)+1;last=best;
-      var it=Object.assign({},best,{time:best.evtime||sl[1],dayIdx:di,day:d,distPrev:hav(prev[0],prev[1],best.lat,best.lon)});
+      var it=Object.assign({},best,{time:best.evtime||sl[1],dayIdx:di,day:d,distPrev:hav(prev[0],prev[1],best.lat,best.lon),surprise:kind==="sec"});
       day.push(it);prev=[best.lat,best.lon];
     });
     day.sort(function(a,b){return a.time<b.time?-1:a.time>b.time?1:0});
@@ -288,7 +300,7 @@ function renderOut(){
     if(wx&&wx.pop>=60)h+='<div class="rainnote">'+esc(T("rain"))+"</div>";
     its.forEach(function(it){
       var t=it.tags||{};
-      h+='<div class="item" data-id="'+esc(it.id)+'"><div class="num" style="background:'+DAYCOL[di%DAYCOL.length]+'">'+it.n+'</div><div class="b"><div class="t1"><span class="time">'+esc(it.time)+'</span><span class="nm">'+esc(it.name)+"</span>"+(t.fee==="no"?'<span class="tag">'+esc(T("free_tag"))+"</span>":"")+'</div><div class="meta">'+IBYK[it.cat].e+" "+esc(typeLabel(it.type))+(it.venue?" &middot; "+esc(it.venue):"")+(it.distPrev>0.05?" &middot; "+esc(T("away",{d:fmtKm(it.distPrev)})):"")+(t.opening_hours?" &middot; "+esc(t.opening_hours.length>40?t.opening_hours.slice(0,40)+"...":t.opening_hours):"")+'</div><div class="fresh">'+esc(it.src==="tm"?T("src_tm"):it.src==="wiki"?T("src_wiki"):T("src_osm"))+'</div><div class="acts"><a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination='+it.lat+","+it.lon+'">'+esc(T("directions"))+"</a>"+(it.url?'<a target="_blank" rel="noopener" href="'+esc(it.url)+'">'+esc(T("website"))+"</a>":"")+'<button data-skip="'+esc(it.id)+'">'+esc(T("skip"))+"</button></div></div></div>";
+      h+='<div class="item" data-id="'+esc(it.id)+'"><div class="num" style="background:'+DAYCOL[di%DAYCOL.length]+'">'+it.n+'</div><div class="b"><div class="t1"><span class="time">'+esc(it.time)+'</span><span class="nm">'+esc(it.name)+"</span>"+(it.surprise?'<span class="tag sur">'+esc(T("surprise"))+"</span>":"")+(t.fee==="no"?'<span class="tag">'+esc(T("free_tag"))+"</span>":"")+'</div><div class="meta">'+ico(it.cat,16)+" "+esc(typeLabel(it.type))+(it.venue?" &middot; "+esc(it.venue):"")+(it.distPrev>0.05?" &middot; "+esc(T("away",{d:fmtKm(it.distPrev)})):"")+(t.opening_hours?" &middot; "+esc(t.opening_hours.length>40?t.opening_hours.slice(0,40)+"...":t.opening_hours):"")+'</div><div class="fresh">'+esc(it.src==="tm"?T("src_tm"):it.src==="wiki"?T("src_wiki"):T("src_osm"))+'</div><div class="acts"><a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination='+it.lat+","+it.lon+'">'+esc(T("directions"))+"</a>"+(it.url?'<a target="_blank" rel="noopener" href="'+esc(it.url)+'">'+esc(T("website"))+"</a>":"")+'<button data-more="'+esc(it.cat)+'">'+esc(T("more"))+"</button>"+'<button data-skip="'+esc(it.id)+'">'+esc(T("skip"))+"</button></div></div></div>";
     });
   });
   out.innerHTML=h;
@@ -296,6 +308,7 @@ function renderOut(){
 $("#out").addEventListener("click",function(e){
   var b=e.target.closest("button"),a=e.target.closest("a");
   if(b&&b.dataset.day!=null){S.sel=b.dataset.day==="all"?"all":+b.dataset.day;renderOut();drawMap();return}
+  if(b&&b.dataset.more){var pr=S.profile;pr.more=pr.more||{};pr.more[b.dataset.more]=Math.min(3,(pr.more[b.dataset.more]||0)+1);LS.set("profile",pr);S.blocked.clear&&0;rebuild();return}
   if(b&&b.dataset.skip){S.blocked.add(b.dataset.skip);rebuild();return}
   if(b&&b.id==="shareBtn"){shareLink();return}
   if(b&&b.id==="printBtn"){window.print();return}
