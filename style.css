@@ -1,6 +1,6 @@
 :root{--ink:#0f2a47;--muted:#5d6f84;--line:#dbe4ee;--bg:#f3f6fa;--card:#fff;--red:#d62b2b;--red-d:#b01f1f;--red-l:#fdeaea;--sky:#4aa8d8;--sky-l:#e6f3fb;--gold:#f0b429;--navy:#0f2a47;--r:16px;--shadow:0 8px 24px rgba(15,42,71,.10);--head:64px}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%}
+html,body{margin:0;height:100%;max-width:100%;overflow-x:hidden}
 body{font:15px/1.5 "Trebuchet MS",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg);display:flex;flex-direction:column;min-height:100vh}
 @font-face{font-family:"Fraunces";font-style:normal;font-weight:600;font-display:swap;src:url(vendor/fraunces-600.woff2) format("woff2")}
 h1,h2,h3{font-family:"Fraunces",Georgia,serif;line-height:1.2;margin:0 0 .5em;color:var(--ink)}
@@ -115,3 +115,16 @@ main{flex:1;display:flex;flex-direction:column;min-height:0}
   #langSel{padding:4px;font-size:13px;max-width:76px}
 }
 @media print{body{background:#fff}.top,.mapcol,.trip,.tools,.dtabs,.acts,.pcard,.alts,.status{display:none!important}.side{width:100%;max-width:none;overflow:visible;border:0}.planwrap{height:auto;display:block}.item{break-inside:avoid;box-shadow:none}}
+
+@media(max-width:520px){
+  .top{gap:4px;padding:6px 6px}
+  .brand{gap:6px;flex:none}
+  .brand .logo{height:30px}
+  .brand .name{font-size:16px}
+  .tabs{margin-left:auto;min-width:0}
+  .tabs button{padding:5px 6px;font-size:12px;white-space:nowrap}
+  #langSel{font-size:12px;max-width:80px;padding:4px 2px}
+  .page{padding:16px 10px 50px}
+  .wiz{padding:16px}
+  h1{font-size:23px}
+}
