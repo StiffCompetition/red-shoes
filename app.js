@@ -174,8 +174,11 @@ async function overpass(q){
   }
   throw err;
 }
+function wantsL(cats){return (cats||[]).some(function(d){return d.k==="lgbtq"})}
+function isGay(t,n){t=t||{};return t.gay==="yes"||/^(primary|only|yes)$/.test(t.lgbtq||"")||/\b(gay|lgbt|lgbtq|queer|bear bar|gaysauna)\b/i.test(n||"")}
 function norm(el,cats){
   var t=el.tags||{};if(isBad(t))return null;
+  if(!wantsL(cats)&&isGay(t,t.name))return null;
   var c=classify(t,cats);if(!c)return null;
   var lat=el.lat!=null?el.lat:(el.center&&el.center.lat),lon=el.lon!=null?el.lon:(el.center&&el.center.lon);if(lat==null)return null;
   return {id:el.type+"/"+el.id,name:t["name:"+lang]||t.name,lat:lat,lon:lon,cat:c.cat,type:c.type,tags:t,src:"osm",url:t.website||t["contact:website"]||""};
@@ -193,9 +196,9 @@ function scoreOf(c,p){
   if(p.dislikes.indexOf("loud")>-1&&/^(nightclub|pub|biergarten)$/.test(c.type))s-=3;
   return s;
 }
-function hasCache(lat,lon,p){try{var c=JSON.parse(localStorage.getItem("rs_pl_"+lat.toFixed(2)+"_"+lon.toFixed(2)+"_"+p.interests.slice().sort().join("")+"")||"null");return !!(c&&Date.now()-c.t<864e5&&c.d.length)}catch(e){return false}}
+function hasCache(lat,lon,p){try{var c=JSON.parse(localStorage.getItem("rs_pl2_"+lat.toFixed(2)+"_"+lon.toFixed(2)+"_"+p.interests.slice().sort().join("")+"")||"null");return !!(c&&Date.now()-c.t<864e5&&c.d.length)}catch(e){return false}}
 async function loadPlaces(lat,lon,p){
-  lat=+lat;lon=+lon;var ck="rs_pl_"+lat.toFixed(2)+"_"+lon.toFixed(2)+"_"+p.interests.slice().sort().join("");
+  lat=+lat;lon=+lon;var ck="rs_pl2_"+lat.toFixed(2)+"_"+lon.toFixed(2)+"_"+p.interests.slice().sort().join("");
   try{var c=JSON.parse(localStorage.getItem(ck)||"null");if(c&&Date.now()-c.t<864e5&&c.d.length)return c.d.map(function(x){x.score=scoreOf(x,p)+(x.cat==="food"&&p.interests.indexOf("food")>-1?1:0);return x})}catch(e){}
   var res=await loadPlacesLive(lat,lon,p);
   try{localStorage.setItem(ck,JSON.stringify({t:Date.now(),d:res}))}catch(e){}
@@ -398,6 +401,7 @@ async function loadWiki(lat,lon,p){
     pages.forEach(function(pg){
       var d=(pg.description||"").toLowerCase(),c=pg.coordinates&&pg.coordinates[0];if(!c||!d||WBAD.test(d))return;
       if(BADNAME.test(pg.title))return;
+      if(p.interests.indexOf("lgbtq")<0&&isGay({},pg.title+" "+d))return;
       for(var i=0;i<WCAT.length;i++){
         if(WCAT[i][1].test(d)){
           if(p.interests.indexOf(WCAT[i][0])<0)break;
