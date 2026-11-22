@@ -93,7 +93,7 @@ $("#wizard").addEventListener("click",function(e){
   if(b.dataset.dis){tog(d.dislikes,b.dataset.dis);renderWizard();return}
   if(b.id==="wBack"){S.wiz.step=Math.max(1,S.wiz.step-1);renderWizard();return}
   if(b.id==="wNext"){
-    if(S.wiz.step===1&&d.interests.length<3){$("#wwarn").textContent=T("need3");return}
+    if(S.wiz.step===1&&d.interests.length<1){$("#wwarn").textContent=T("need3");return}
     if(S.wiz.step===3&&!d.budget.length)d.budget=["free"];
     if(S.wiz.step<4){S.wiz.step++;renderWizard();return}
     S.profile=d;LS.set("profile",d);S.wiz={step:1,draft:null};renderProfileCard();show("plan");
