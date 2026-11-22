@@ -96,7 +96,7 @@ main{flex:1;display:flex;flex-direction:column;min-height:0}
 .warn{color:var(--red-d);font-size:13px;min-height:18px}
 .mobtoggle{display:none}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 20px;border-radius:999px;z-index:2000;box-shadow:var(--shadow)}
-.rs-pin{border:3px solid #fff;border-radius:50%;color:#fff;font-weight:800;font-size:12px;display:grid;place-items:center;box-shadow:0 3px 8px rgba(15,42,71,.4)}
+.rs-pin{position:relative;border:3px solid #fff;border-radius:50%;color:#fff;font-weight:800;font-size:12px;display:grid;place-items:center;box-shadow:0 3px 8px rgba(15,42,71,.4)}
 @media(max-width:760px){
   .planwrap{display:block;height:auto}
   #view-plan.on{display:block}
@@ -169,3 +169,6 @@ main{flex:1;display:flex;flex-direction:column;min-height:0}
 
 .item .acts a.book{color:var(--navy);text-decoration:none;background:var(--gold);border-radius:999px;padding:2px 10px;font-weight:700}
 .item .meta b.pr{color:var(--ink);background:var(--sky-l);border-radius:999px;padding:0 8px}
+
+.rs-pb{position:absolute;right:-7px;top:-7px;width:16px;height:16px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 1px 3px rgba(15,42,71,.4)}
+.rs-pb svg{width:12px;height:12px}
