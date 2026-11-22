@@ -66,12 +66,21 @@ $("#langSel").addEventListener("change",function(){lang=this.value;LS.set("lang"
 function renderAbout(){$("#about").innerHTML="<h1>"+esc(T("about_h"))+"</h1><p><b>"+esc(T("tagline"))+"</b></p>"+T("about_p").map(function(p){return "<p>"+esc(p)+"</p>"}).join("")+'<p class="muted">&copy; OpenStreetMap contributors &middot; Open-Meteo</p>'}
 
 /* ---------- profile wizard ---------- */
-function newDraft(){var p=S.profile;var d=p?JSON.parse(JSON.stringify(p)):{interests:[],pace:"balanced",budget:["free","mid"],dislikes:[]};d.fav=d.fav||[];d.more=d.more||{};d.name=d.name||"";return d}
+function newDraft(){var p=S.profile;var d=p?JSON.parse(JSON.stringify(p)):{interests:[],pace:"balanced",budget:["free","mid"],dislikes:[]};d.fav=d.fav||[];d.more=d.more||{};d.name=d.name||"";d.sub=d.sub||[];d.extra=d.extra||"";return d}
+var SUBS={wellness:["spa","sauna","hot_spring","public_bath"],beer:["brewery","beerbar"],music:["music_venue","nightclub","concert_hall"],history:["museum","gallery","monument","castle"],nature:["park","garden","waterfall","beach","peak"]};
+function subOK(cat,type){var o=SUBS[cat],sp=(S.profile&&S.profile.sub)||[];if(!o)return true;var sel=sp.filter(function(x){return o.indexOf(x)>-1});return !sel.length||sel.indexOf(type)>-1}
+function subUI(d){
+  var h="",rows=ORDER.filter(function(k){return SUBS[k]&&d.interests.indexOf(k)>-1});
+  if(rows.length){h+='<div class="subs"><div class="muted">'+esc(T("narrow"))+"</div>"+rows.map(function(k){return '<div class="subrow"><b>'+esc(T("int_"+k))+'</b><div class="chips">'+SUBS[k].map(function(t){return '<button type="button" class="chip'+(d.sub.indexOf(t)>-1?" on":"")+'" data-sub="'+t+'">'+esc(typeLabel(t))+"</button>"}).join("")+"</div></div>"}).join("")+"</div>"}
+  h+='<label class="nmf extra"><span>'+esc(T("extra_l"))+'</span><input id="pextra" maxlength="40" placeholder="'+esc(T("extra_ph"))+'" value="'+esc(d.extra||"")+'"></label>';
+  return h;
+}
 function renderWizard(){
   if(!S.wiz.draft)S.wiz.draft=newDraft();
   var d=S.wiz.draft,s=S.wiz.step,h='<div class="wiz"><div class="stepno">'+esc(T("step",{n:s}))+'</div>';
   if(s===1){
     h+="<h1>"+esc(T("wiz_title"))+'</h1><label class="nmf"><span>'+esc(T("ask_name"))+'</span><input id="pname" maxlength="24" autocomplete="given-name" value="'+esc(d.name||"")+'"></label><h2>'+esc(T("q1"))+'</h2><div class="muted">'+esc(T("q1h"))+'</div><div class="grid">'+ORDER.map(function(k){var i=IBYK[k],on=d.interests.indexOf(k)>-1,fv=(d.fav||[]).indexOf(k)>-1;return '<button type="button" class="opt card'+(on?" on":"")+'" data-int="'+k+'"><span class="icw">'+ico(k,46)+'</span><span class="ct"><b>'+esc(T("int_"+k))+"</b><small>"+esc(T("im_"+k))+"</small></span>"+(on?'<span class="fav'+(fv?" on":"")+'" data-fav="'+k+'" role="button" aria-label="favourite">&#9733;</span>':"")+"</button>"}).join("")+"</div>"+(d.interests.length?'<div class="muted fvh">'+esc(T("fav_hint"))+"</div>":"");
+    h+=subUI(d);
   }else if(s===2){
     h+="<h2>"+esc(T("q2"))+'</h2><div class="col">'+["rushed","balanced","chill","verychill"].map(function(p){return '<button type="button" class="opt'+(d.pace===p?" on":"")+'" data-pace="'+p+'"><span><b>'+esc(T("pace_"+p))+"</b><small>"+esc(T("pace_"+p+"_d"))+"</small></span></button>"}).join("")+"</div>";
   }else if(s===3){
@@ -82,12 +91,13 @@ function renderWizard(){
   h+='<div class="warn" id="wwarn"></div><div class="wizbtns"><button class="btn" id="wBack"'+(s===1?" disabled":"")+">"+esc(T("back"))+'</button><button class="btn pri" id="wNext">'+esc(s===4?T("save"):T("next"))+"</button></div></div>";
   $("#wizard").innerHTML=h;
 }
-$("#wizard").addEventListener("input",function(e){if(e.target.id==="pname"&&S.wiz.draft)S.wiz.draft.name=e.target.value.trim()});
+$("#wizard").addEventListener("input",function(e){if(e.target.id==="pname"&&S.wiz.draft)S.wiz.draft.name=e.target.value.trim();if(e.target.id==="pextra"&&S.wiz.draft)S.wiz.draft.extra=e.target.value.trim()});
 $("#wizard").addEventListener("click",function(e){
   var d=S.wiz.draft,b=e.target.closest("button");if(!b||!d)return;
   var fb=e.target.closest("[data-fav]");if(fb){var k=fb.dataset.fav,fi=d.fav.indexOf(k);if(fi>-1)d.fav.splice(fi,1);else{if(d.fav.length>=3)d.fav.shift();d.fav.push(k)}renderWizard();return}
   function tog(a,v){var i=a.indexOf(v);if(i>-1)a.splice(i,1);else a.push(v)}
-  if(b.dataset.int){tog(d.interests,b.dataset.int);d.fav=d.fav.filter(function(x){return d.interests.indexOf(x)>-1});renderWizard();return}
+  if(b.dataset.int){tog(d.interests,b.dataset.int);d.fav=d.fav.filter(function(x){return d.interests.indexOf(x)>-1});d.sub=d.sub.filter(function(t){return Object.keys(SUBS).some(function(k){return d.interests.indexOf(k)>-1&&SUBS[k].indexOf(t)>-1})});renderWizard();return}
+  if(b.dataset.sub){tog(d.sub,b.dataset.sub);renderWizard();return}
   if(b.dataset.pace){d.pace=b.dataset.pace;renderWizard();return}
   if(b.dataset.bud){tog(d.budget,b.dataset.bud);renderWizard();return}
   if(b.dataset.dis){tog(d.dislikes,b.dataset.dis);renderWizard();return}
@@ -96,8 +106,8 @@ $("#wizard").addEventListener("click",function(e){
     if(S.wiz.step===1&&d.interests.length<1){$("#wwarn").textContent=T("need3");return}
     if(S.wiz.step===3&&!d.budget.length)d.budget=["free"];
     if(S.wiz.step<4){S.wiz.step++;renderWizard();return}
-    var oldI=S.profile?S.profile.interests.slice().sort().join():"";S.profile=d;LS.set("profile",d);S.wiz={step:1,draft:null};renderProfileCard();show("plan");
-    if(S.trip&&S.days&&S.days.length&&oldI!==d.interests.slice().sort().join()){run(S.trip,S.days[0],S.days[S.days.length-1]);return}
+    var pk=function(q){return q?q.interests.slice().sort().join()+"|"+(q.sub||[]).slice().sort().join()+"|"+(q.extra||"").toLowerCase():""},oldI=pk(S.profile);S.profile=d;LS.set("profile",d);S.wiz={step:1,draft:null};renderProfileCard();show("plan");
+    if(S.trip&&S.days&&S.days.length&&oldI!==pk(d)){run(S.trip,S.days[0],S.days[S.days.length-1]);return}
     if(S.trip&&S.cands.length){rebuild()}
   }
 });
@@ -193,6 +203,7 @@ function norm(el,cats){
       }else if(/^(wellness|beer|music|food|shopping|active)$/.test(c.cat))return null;
     }
   }
+  if(!subOK(c.cat,c.type))return null;
   var lat=el.lat!=null?el.lat:(el.center&&el.center.lat),lon=el.lon!=null?el.lon:(el.center&&el.center.lon);if(lat==null)return null;
   return {id:el.type+"/"+el.id,name:t["name:"+lang]||t.name,lat:lat,lon:lon,cat:c.cat,type:c.type,tags:t,src:"osm",url:t.website||t["contact:website"]||""};
 }
@@ -209,9 +220,9 @@ function scoreOf(c,p){
   if(p.dislikes.indexOf("loud")>-1&&/^(nightclub|pub|biergarten)$/.test(c.type))s-=3;
   return s;
 }
-function hasCache(lat,lon,p){try{var c=JSON.parse(localStorage.getItem("rs_pl3_"+lat.toFixed(2)+"_"+lon.toFixed(2)+"_"+p.interests.slice().sort().join("")+"")||"null");return !!(c&&Date.now()-c.t<864e5&&c.d.length)}catch(e){return false}}
+function hasCache(lat,lon,p){try{var c=JSON.parse(localStorage.getItem("rs_pl4_"+lat.toFixed(2)+"_"+lon.toFixed(2)+"_"+p.interests.slice().sort().join("")+"_"+(p.sub||[]).slice().sort().join("")+"_"+(p.extra||"").toLowerCase())||"null");return !!(c&&Date.now()-c.t<864e5&&c.d.length)}catch(e){return false}}
 async function loadPlaces(lat,lon,p){
-  lat=+lat;lon=+lon;var ck="rs_pl3_"+lat.toFixed(2)+"_"+lon.toFixed(2)+"_"+p.interests.slice().sort().join("");
+  lat=+lat;lon=+lon;var ck="rs_pl4_"+lat.toFixed(2)+"_"+lon.toFixed(2)+"_"+p.interests.slice().sort().join("")+"_"+(p.sub||[]).slice().sort().join("")+"_"+(p.extra||"").toLowerCase();
   try{var c=JSON.parse(localStorage.getItem(ck)||"null");if(c&&Date.now()-c.t<864e5&&c.d.length)return c.d.map(function(x){x.score=scoreOf(x,p)+(x.cat==="food"&&p.interests.indexOf("food")>-1?1:0);return x})}catch(e){}
   var res=await loadPlacesLive(lat,lon,p);
   try{localStorage.setItem(ck,JSON.stringify({t:Date.now(),d:res}))}catch(e){}
@@ -385,6 +396,7 @@ async function loadPhoton(lat,lon,p){
   try{
     var cats=INTERESTS.filter(function(d){return p.interests.indexOf(d.k)>-1||d.k==="food"});
     var terms=[];cats.forEach(function(d){(PQ[d.k]||[]).forEach(function(q){terms.push([d.k,q])})});
+    (p.extra||"").split(",").slice(0,2).forEach(function(q){q=q.trim();if(q.length>2)terms.push(["extra",q])});
     if(p.interests.indexOf("lgbtq")>-1){var X={wellness:["gay sauna","gay spa"],music:["gay club"],food:["gay restaurant"],shopping:["gay shop"]};p.interests.forEach(function(k){(X[k]||[]).forEach(function(q){terms.push(["lgbtq",q])})})}
     var res=await Promise.all(terms.slice(0,10).map(function(tq){
       var ctl=new AbortController(),tm=setTimeout(function(){ctl.abort()},8000);
@@ -399,6 +411,7 @@ async function loadPhoton(lat,lon,p){
       if(x.k==="lgbtq"&&/^(bar|pub|nightclub|club|cafe|restaurant)$/.test(v))t.lgbtq="primary";
       else if(x.k==="lgbtq"&&isGay({},pr.name))t.lgbtq="primary";
       var c=norm({type:pr.osm_type==="N"?"node":pr.osm_type==="W"?"way":"relation",id:pr.osm_id,lat:g[1],lon:g[0],tags:t},cats);
+      if(!c&&x.k==="extra"&&!(p.interests.indexOf("lgbtq")<0&&isGay({},pr.name))&&p.interests.length){var ek=p.interests.filter(function(k){return k!=="lgbtq"})[0]||"secrets";c={id:"ph/"+pr.osm_id,name:pr.name,lat:g[1],lon:g[0],cat:ek,type:"attraction",tags:t,src:"photon",url:""}}
       if(c&&!seen[c.id]){seen[c.id]=1;c.src="photon";c.score=scoreOf(c,p)+(c.cat==="food"&&p.interests.indexOf("food")>-1?1:0);out.push(c)}
     })});
     return out;
@@ -425,7 +438,7 @@ async function loadWiki(lat,lon,p){
       if(p.interests.indexOf("lgbtq")<0&&isGay({},pg.title+" "+d))return;
       for(var i=0;i<WCAT.length;i++){
         if(WCAT[i][1].test(d)){
-          if(p.interests.indexOf(WCAT[i][0])<0)break;
+          if(p.interests.indexOf(WCAT[i][0])<0||!subOK(WCAT[i][0],WCAT[i][2]))break;
           var it={id:"wp/"+pg.pageid,name:pg.title,lat:c.lat,lon:c.lon,cat:WCAT[i][0],type:WCAT[i][2],tags:{wikipedia:"1",wikidata:"1"},src:"wiki",url:"https://"+lang+".wikipedia.org/?curid="+pg.pageid,desc:pg.description};
           it.score=scoreOf(it,p);out.push(it);break;
         }
