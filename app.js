@@ -107,7 +107,23 @@ function dayList(a,b){var out=[],x=new Date(a+"T12:00:00"),y=new Date(b+"T12:00:
 function hav(a,b,c,d){var R=6371,t=Math.PI/180,dl=(c-a)*t,dn=(d-b)*t,x=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a*t)*Math.cos(c*t)*Math.sin(dn/2)*Math.sin(dn/2);return 2*R*Math.asin(Math.sqrt(x))}
 function fmtKm(k){return k<1?Math.round(k*1000)+" m":k.toFixed(1)+" km"}
 function toast(m){var t=$("#toast");t.textContent=m;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(function(){t.hidden=true},2200)}
-function setStatus(m,err){var s=$("#status");if(!m){s.hidden=true;return}s.hidden=false;s.className="status"+(err?" err":"");s.textContent=m}
+var PROG=null;
+function stopProg(){if(PROG){clearInterval(PROG.t);PROG=null}}
+function beginProg(){
+  if(PROG)return;
+  var s=$("#status"),t0=Date.now(),i=0,keys=["p1","p2","p3","p4"];
+  s.hidden=false;s.className="status prog";
+  s.innerHTML='<div class="progtxt" id="progTxt"></div><div class="progbar"><i></i><img src="img/rs-mark.png" alt="" class="progshoe"></div><div class="progsub" id="progSub"></div>';
+  function tick(){
+    var sec=(Date.now()-t0)/1000,el=$("#progTxt");if(!el){stopProg();return}
+    var k=keys[Math.min(Math.floor(sec/3.5),keys.length-1)];
+    if(sec>14)k="p_slow";
+    el.textContent=T(k);
+    $("#progSub").textContent=Math.floor(sec)+" s";
+  }
+  tick();PROG={t:setInterval(tick,500)};
+}
+function setStatus(m,err){var s=$("#status");stopProg();if(!m){s.hidden=true;return}s.hidden=false;s.className="status"+(err?" err":"");s.textContent=m}
 
 /* ---------- data: places ---------- */
 var BADNAME=/\b(adult|nude|nudist|xxx|strip|stripper|erotic|swinger|sex|massage parlou?r|brothel|escort)\b/i;
@@ -303,7 +319,7 @@ function drawMap(){
 /* ---------- run a trip ---------- */
 async function run(place,from,to){
   if(!S.profile){show("profile");return}
-  var btn=$("#goBtn");btn.disabled=true;$("#alts").hidden=true;setStatus(T("loading"));
+  var btn=$("#goBtn");btn.disabled=true;$("#alts").hidden=true;beginProg();
   try{
     S.trip=place;S.days=dayList(from,to);S.blocked=new Set();S.sel="all";
     map.setView([place.lat,place.lon],13);
@@ -319,7 +335,7 @@ $("#tripForm").addEventListener("submit",async function(e){
   e.preventDefault();
   var q=$("#where").value.trim(),f=$("#from").value,t=$("#to").value;if(!q||!f||!t)return;
   if(t<f){$("#to").value=t=f}
-  setStatus(T("loading"));
+  beginProg();
   try{
     var g=await geocode(q);
     if(!g.length){setStatus(T("geo_fail"),true);return}
@@ -332,7 +348,7 @@ $("#alts").addEventListener("click",function(e){var b=e.target.closest("button")
 $("#quick").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;$("#where").value=b.dataset.city;$("#tripForm").requestSubmit()});
 $("#nearBtn").addEventListener("click",function(){
   if(!navigator.geolocation){setStatus(T("geo_fail"),true);return}
-  setStatus(T("loading"));
+  beginProg();
   navigator.geolocation.getCurrentPosition(function(pos){
     var f=$("#from").value||iso(new Date()),t=$("#to").value||f;
     run({name:T("near"),short:T("near"),lat:pos.coords.latitude,lon:pos.coords.longitude},f,t);
