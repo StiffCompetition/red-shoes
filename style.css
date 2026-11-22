@@ -54,7 +54,7 @@ main{flex:1;display:flex;flex-direction:column;min-height:0}
 .alts{margin:-4px 0 14px;font-size:13px;color:var(--muted)}
 .alts button{margin:4px 4px 0 0}
 .empty{text-align:center;padding:30px 18px;background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
-.empty .hero{display:block;margin:0 auto 12px;height:96px;width:auto;border-radius:16px;animation:bob 3.2s ease-in-out infinite}
+.empty .hero{display:block;margin:0 auto 12px;height:92px;width:auto;filter:drop-shadow(0 8px 6px rgba(15,42,71,.2));animation:bob 3.2s ease-in-out infinite}
 @keyframes bob{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-6px) rotate(2deg)}}
 .empty h2{font-size:24px}
 .dayhead{display:flex;align-items:center;gap:10px;margin:20px 0 10px}
@@ -134,9 +134,10 @@ main{flex:1;display:flex;flex-direction:column;min-height:0}
 
 .status.prog{background:#fff;border:1px solid var(--line);box-shadow:var(--shadow);padding:14px 16px}
 .progtxt{font-weight:700;color:var(--navy);margin-bottom:12px}
-.progbar{position:relative;height:8px;border-radius:99px;background:var(--sky-l);margin:4px 0 22px}
+.progbar{position:relative;height:8px;border-radius:99px;background:var(--sky-l);margin:30px 0 14px}
 .progbar i{position:absolute;left:0;top:0;bottom:0;width:30%;border-radius:99px;background:linear-gradient(90deg,var(--red),var(--gold));animation:slide 1.6s ease-in-out infinite}
-.progshoe{position:absolute;top:-17px;left:0;height:30px;width:auto;border-radius:8px;animation:walk 1.6s ease-in-out infinite;box-shadow:0 3px 8px rgba(15,42,71,.25)}
+.progshoe{position:absolute;bottom:2px;left:0;height:40px;width:auto;animation:walk 1.8s linear infinite,hop .45s ease-in-out infinite;filter:drop-shadow(0 4px 3px rgba(15,42,71,.25));transform-origin:50% 90%}
 .progsub{font-size:12px;color:var(--muted);text-align:right}
 @keyframes slide{0%{left:0;width:12%}50%{width:40%}100%{left:88%;width:12%}}
-@keyframes walk{0%{left:0;transform:rotate(-4deg)}50%{transform:rotate(4deg)}100%{left:calc(100% - 46px);transform:rotate(-4deg)}}
+@keyframes walk{0%{left:0}100%{left:calc(100% - 56px)}}
+@keyframes hop{0%,100%{margin-bottom:0;rotate:-5deg}50%{margin-bottom:10px;rotate:5deg}}

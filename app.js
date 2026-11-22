@@ -113,7 +113,7 @@ function beginProg(){
   if(PROG)return;
   var s=$("#status"),t0=Date.now(),i=0,keys=["p1","p2","p3","p4"];
   s.hidden=false;s.className="status prog";
-  s.innerHTML='<div class="progtxt" id="progTxt"></div><div class="progbar"><i></i><img src="img/rs-mark.png" alt="" class="progshoe"></div><div class="progsub" id="progSub"></div>';
+  s.innerHTML='<div class="progtxt" id="progTxt"></div><div class="progbar"><i></i><img src="img/shoes.png" alt="" class="progshoe"></div><div class="progsub" id="progSub"></div>';
   function tick(){
     var sec=(Date.now()-t0)/1000,el=$("#progTxt");if(!el){stopProg();return}
     var k=keys[Math.min(Math.floor(sec/3.5),keys.length-1)];
@@ -130,26 +130,37 @@ var BADNAME=/\b(adult|nude|nudist|xxx|strip|stripper|erotic|swinger|sex|massage 
 function isBad(t){return /^(brothel|stripclub|adult_gaming_centre)$/.test(t.amenity||"")||/adult/.test(t.leisure||"")||t.disused||t["disused:amenity"]||t.abandoned||t.access==="private"||t.access==="no"||BADNAME.test(t.name||"")}
 function oq(lat,lon,r,cats,limit){
   var parts=[];cats.forEach(function(d){d.m.forEach(function(p){parts.push("nwr(around:"+r+","+lat+","+lon+')["'+p[0]+'"~"^('+p[1]+')$"]["name"]'+(d.extra||"")+";")})});
-  return "[out:json][timeout:30];("+parts.join("")+");out center tags "+limit+";"
+  return "[out:json][timeout:20];("+parts.join("")+");out center tags "+limit+";"
 }
 var OVP=["https://overpass-api.de/api/interpreter","https://overpass.private.coffee/api/interpreter","https://overpass.kumi.systems/api/interpreter","https://maps.mail.ru/osm/tools/overpass/api/interpreter"];
 function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
+function ovOne(u,q,ms,ctl){
+  var tm=setTimeout(function(){ctl.abort()},ms);
+  return fetch(u,{method:"POST",body:"data="+encodeURIComponent(q),headers:{"Content-Type":"application/x-www-form-urlencoded"},signal:ctl.signal}).then(function(r){
+    clearTimeout(tm);if(!r.ok)throw new Error("HTTP "+r.status);return r.json();
+  }).then(function(j){
+    if(j.remark&&/error|timed out|memory/i.test(j.remark)&&!(j.elements&&j.elements.length))throw new Error("remark");
+    return j.elements||[];
+  },function(e){clearTimeout(tm);throw e});
+}
+/* hedged requests: start server 1 now, others 2.5 s apart; first good answer wins; hard stop at ~30 s */
+function overpassRound(q,ms){
+  return new Promise(function(resolve,reject){
+    var ctls=[],done=false,fails=0,last,timers=[];
+    function finish(){done=true;timers.forEach(clearTimeout);ctls.forEach(function(c){try{c.abort()}catch(e){}})}
+    OVP.forEach(function(u,k){
+      timers.push(setTimeout(function(){
+        if(done)return;var ctl=new AbortController();ctls.push(ctl);
+        ovOne(u,q,ms,ctl).then(function(els){if(!done){finish();resolve(els)}},function(e){last=e;fails++;if(!done&&fails>=OVP.length){finish();reject(last)}});
+      },k*2500));
+    });
+  });
+}
 async function overpass(q){
-  var err,start=Math.floor(Math.random()*2);
-  for(var round=0;round<3;round++){
-    for(var k=0;k<OVP.length;k++){
-      var u=OVP[(k+start)%OVP.length];
-      try{
-        var ctl=new AbortController(),tm=setTimeout(function(){ctl.abort()},28000);
-        var r=await fetch(u,{method:"POST",body:"data="+encodeURIComponent(q),headers:{"Content-Type":"application/x-www-form-urlencoded"},signal:ctl.signal});
-        clearTimeout(tm);
-        if(!r.ok)throw new Error("HTTP "+r.status);
-        var j=await r.json();
-        if(j.remark&&/error|timed out|memory/i.test(j.remark)&&!(j.elements&&j.elements.length))throw new Error("remark");
-        return j.elements||[];
-      }catch(e){err=e}
-    }
-    await sleep(1500*(round+1));
+  var err;
+  for(var round=0;round<2;round++){
+    try{return await overpassRound(q,round?12000:16000)}catch(e){err=e}
+    await sleep(800);
   }
   throw err;
 }
@@ -172,6 +183,7 @@ function scoreOf(c,p){
   if(p.dislikes.indexOf("loud")>-1&&/^(nightclub|pub|biergarten)$/.test(c.type))s-=3;
   return s;
 }
+function hasCache(lat,lon,p){try{var c=JSON.parse(localStorage.getItem("rs_pl_"+lat.toFixed(2)+"_"+lon.toFixed(2)+"_"+p.interests.slice().sort().join("")+"")||"null");return !!(c&&Date.now()-c.t<864e5&&c.d.length)}catch(e){return false}}
 async function loadPlaces(lat,lon,p){
   lat=+lat;lon=+lon;var ck="rs_pl_"+lat.toFixed(2)+"_"+lon.toFixed(2)+"_"+p.interests.slice().sort().join("");
   try{var c=JSON.parse(localStorage.getItem(ck)||"null");if(c&&Date.now()-c.t<864e5&&c.d.length)return c.d.map(function(x){x.score=scoreOf(x,p)+(x.cat==="food"&&p.interests.indexOf("food")>-1?1:0);return x})}catch(e){}
@@ -182,7 +194,7 @@ async function loadPlaces(lat,lon,p){
 async function loadPlacesLive(lat,lon,p){
   var want=INTERESTS.filter(function(d){return p.interests.indexOf(d.k)>-1&&d.k!=="food"});
   var food=[IBYK.food],all=want.concat(food);
-  var out=[],r=6000;
+  var out=[],r=5000;
   for(var pass=0;pass<2;pass++){
     var els=[];
     var ab=await Promise.all([want.length?overpass(oq(lat,lon,r,want,500)):Promise.resolve([]),overpass(oq(lat,lon,r,food,250))]);
@@ -266,7 +278,7 @@ function rebuild(){build();renderOut();drawMap()}
 /* ---------- render agenda ---------- */
 function renderOut(){
   var out=$("#out");
-  if(!S.trip||!S.items){out.innerHTML='<div class="empty"><img class="hero" src="img/rs-mark.png" alt="" width="180" height="118"><h2>'+esc(T("empty_title"))+"</h2><p>"+esc(T("empty_text"))+"</p></div>";return}
+  if(!S.trip||!S.items){out.innerHTML='<div class="empty"><img class="hero" src="img/shoes.png" alt="" width="160" height="115"><h2>'+esc(T("empty_title"))+"</h2><p>"+esc(T("empty_text"))+"</p></div>";return}
   var h='<div class="dtabs"><button data-day="all" class="'+(S.sel==="all"?"on":"")+'">'+esc(T("all_days"))+"</button>"+S.days.map(function(d,i){return '<button data-day="'+i+'" class="'+(S.sel===i?"on":"")+'">'+esc(T("day",{n:i+1}))+"</button>"}).join("")+'</div><div class="tools"><button id="shareBtn">'+esc(T("share"))+'</button><button id="printBtn">'+esc(T("print"))+"</button></div>";
   if(S.items.length<6)h+='<div class="status">'+esc(T("few"))+"</div>";
   S.days.forEach(function(d,di){
@@ -276,7 +288,7 @@ function renderOut(){
     if(wx&&wx.pop>=60)h+='<div class="rainnote">'+esc(T("rain"))+"</div>";
     its.forEach(function(it){
       var t=it.tags||{};
-      h+='<div class="item" data-id="'+esc(it.id)+'"><div class="num" style="background:'+DAYCOL[di%DAYCOL.length]+'">'+it.n+'</div><div class="b"><div class="t1"><span class="time">'+esc(it.time)+'</span><span class="nm">'+esc(it.name)+"</span>"+(t.fee==="no"?'<span class="tag">'+esc(T("free_tag"))+"</span>":"")+'</div><div class="meta">'+IBYK[it.cat].e+" "+esc(typeLabel(it.type))+(it.venue?" &middot; "+esc(it.venue):"")+(it.distPrev>0.05?" &middot; "+esc(T("away",{d:fmtKm(it.distPrev)})):"")+(t.opening_hours?" &middot; "+esc(t.opening_hours.length>40?t.opening_hours.slice(0,40)+"...":t.opening_hours):"")+'</div><div class="fresh">'+esc(it.src==="tm"?T("src_tm"):T("src_osm"))+'</div><div class="acts"><a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination='+it.lat+","+it.lon+'">'+esc(T("directions"))+"</a>"+(it.url?'<a target="_blank" rel="noopener" href="'+esc(it.url)+'">'+esc(T("website"))+"</a>":"")+'<button data-skip="'+esc(it.id)+'">'+esc(T("skip"))+"</button></div></div></div>";
+      h+='<div class="item" data-id="'+esc(it.id)+'"><div class="num" style="background:'+DAYCOL[di%DAYCOL.length]+'">'+it.n+'</div><div class="b"><div class="t1"><span class="time">'+esc(it.time)+'</span><span class="nm">'+esc(it.name)+"</span>"+(t.fee==="no"?'<span class="tag">'+esc(T("free_tag"))+"</span>":"")+'</div><div class="meta">'+IBYK[it.cat].e+" "+esc(typeLabel(it.type))+(it.venue?" &middot; "+esc(it.venue):"")+(it.distPrev>0.05?" &middot; "+esc(T("away",{d:fmtKm(it.distPrev)})):"")+(t.opening_hours?" &middot; "+esc(t.opening_hours.length>40?t.opening_hours.slice(0,40)+"...":t.opening_hours):"")+'</div><div class="fresh">'+esc(it.src==="tm"?T("src_tm"):it.src==="wiki"?T("src_wiki"):T("src_osm"))+'</div><div class="acts"><a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination='+it.lat+","+it.lon+'">'+esc(T("directions"))+"</a>"+(it.url?'<a target="_blank" rel="noopener" href="'+esc(it.url)+'">'+esc(T("website"))+"</a>":"")+'<button data-skip="'+esc(it.id)+'">'+esc(T("skip"))+"</button></div></div></div>";
     });
   });
   out.innerHTML=h;
@@ -317,15 +329,59 @@ function drawMap(){
 }
 
 /* ---------- run a trip ---------- */
-async function run(place,from,to){
+
+/* ---------- data: Wikipedia GeoSearch (fast first source) ---------- */
+var WCAT=[
+ ["music",/(music|concert|nightclub|jazz|opera house|club de|sala de concierto)/,"music_venue"],
+ ["history",/(museum|mus[eé]e|museo|gallery|galer[ií]e|galer[ií]a|cathedral|cath[eé]drale|catedral|church|[eé]glise|iglesia|basilica|basilique|basílica|chapel|temple|mosque|synagogue|castle|ch[aâ]teau|castillo|fort\b|fortress|palace|palais|palacio|monument|memorial|historic|historique|hist[oó]rico|archaeolog|ruins|theatre|theater|th[eé][aâ]tre|teatro|library|biblioth[eè]que|biblioteca|national historic|heritage)/,"monument"],
+ ["nature",/(park\b|parc\b|parque|garden|jardin|jard[ií]n|nature reserve|r[eé]serve|reserva|beach|plage|playa|waterfall|chute|cascada|mountain|montagne|monta[nñ]a|hill\b|island|[iî]le\b|isla|lake|lac\b|lago|river|forest|zoo|botanical)/,"park"],
+ ["active",/(stadium|stade|estadio|arena|sports|ice rink|golf|velodrome|racetrack)/,"stadium"],
+ ["shopping",/(market|march[eé]|mercado|shopping|mall|centre commercial|department store)/,"marketplace"],
+ ["photo",/(tower|tour\b|torre|bridge|pont\b|puente|lighthouse|phare|faro|viewpoint|skyscraper|gratte-ciel|rascacielos|square|place\b|plaza|landmark|fountain|statue|observation|clock)/,"attraction"]
+];
+var WBAD=/(school|[eé]cole|escuela|university|universit[eé]|universidad|college|hospital|h[oô]pital|hotel|h[oô]tel|street|rue\b|calle|avenue|road|station|gare|estaci[oó]n|neighbou?rhood|quartier|barrio|district|borough|arrondissement|municipality|village|city\b|ville\b|ciudad|metro|subway|airport|company|corporation|apartment|condominium|residential|office|bank\b|shopping street|county|province|region)/;
+async function loadWiki(lat,lon,p){
+  try{
+    var u="https://"+lang+".wikipedia.org/w/api.php?action=query&generator=geosearch&ggscoord="+lat+"%7C"+lon+"&ggsradius=9000&ggslimit=60&prop=description%7Ccoordinates&colimit=60&format=json&formatversion=2&origin=*";
+    var ctl=new AbortController(),tm=setTimeout(function(){ctl.abort()},9000);
+    var r=await fetch(u,{signal:ctl.signal});clearTimeout(tm);if(!r.ok)return [];
+    var j=await r.json(),pages=(j.query&&j.query.pages)||[],out=[],all=INTERESTS;
+    pages.forEach(function(pg){
+      var d=(pg.description||"").toLowerCase(),c=pg.coordinates&&pg.coordinates[0];if(!c||!d||WBAD.test(d))return;
+      if(BADNAME.test(pg.title))return;
+      for(var i=0;i<WCAT.length;i++){
+        if(WCAT[i][1].test(d)){
+          var it={id:"wp/"+pg.pageid,name:pg.title,lat:c.lat,lon:c.lon,cat:WCAT[i][0],type:WCAT[i][2],tags:{wikipedia:"1",wikidata:"1"},src:"wiki",url:"https://"+lang+".wikipedia.org/?curid="+pg.pageid,desc:pg.description};
+          it.score=scoreOf(it,p);out.push(it);break;
+        }
+      }
+    });
+    return out;
+  }catch(e){return []}
+}
+async function run(place,from,to,quiet){
   if(!S.profile){show("profile");return}
-  var btn=$("#goBtn");btn.disabled=true;$("#alts").hidden=true;beginProg();
+  var btn=$("#goBtn");btn.disabled=true;$("#alts").hidden=true;if(!quiet)beginProg();
   try{
     S.trip=place;S.days=dayList(from,to);S.blocked=new Set();S.sel="all";
     map.setView([place.lat,place.lon],13);
-    var res=await Promise.all([loadPlaces(place.lat,place.lon,S.profile),loadEvents(place.lat,place.lon,from,to,S.profile),loadWeather(place.lat,place.lon,from,S.days[S.days.length-1])]);
-    S.cands=res[0].concat(res[1]);S.wx=res[2];
-    build();renderOut();drawMap();setStatus("");
+    var evP=loadEvents(place.lat,place.lon,from,to,S.profile),wxP=loadWeather(place.lat,place.lon,from,S.days[S.days.length-1]);
+    var osmP=loadPlaces(place.lat,place.lon,S.profile).then(function(x){return {ok:true,v:x}},function(e){return {ok:false,e:e}});
+    var wk=await loadWiki(place.lat,place.lon,S.profile);
+    var ev=await evP;S.wx=await wxP;
+    var osm=null;
+    if(wk.length>=6){
+      /* show Wikipedia places at once, add restaurants and more when OpenStreetMap answers */
+      S.cands=wk.concat(ev);build();renderOut();drawMap();
+      setStatus("");var st=$("#status");st.hidden=false;st.className="status";st.textContent=T("adding");
+      osm=await osmP;
+      if(osm.ok){S.cands=osm.v.concat(wk,ev);build();renderOut();drawMap();setStatus("")}
+      else setStatus(T("osm_late"));
+    }else{
+      osm=await osmP;
+      if(!osm.ok&&!wk.length)throw osm.e;
+      S.cands=(osm.ok?osm.v:[]).concat(wk,ev);build();renderOut();drawMap();setStatus("");
+    }
     try{history.replaceState(null,"","#q="+encodeURIComponent(place.short||place.name)+"&lat="+place.lat.toFixed(4)+"&lon="+place.lon.toFixed(4)+"&from="+from+"&to="+to)}catch(e){}
     if(window.innerWidth<=760)$(".planwrap").classList.remove("mapmode");
   }catch(e){console.error("rs:",e&&e.message);setStatus(T("data_fail"),true)}
@@ -367,7 +423,7 @@ function init(){
   var h=location.hash.replace(/^#/,"");
   if(h.indexOf("q=")>-1){
     var o={};h.split("&").forEach(function(x){var p=x.split("=");o[p[0]]=decodeURIComponent(p[1]||"")});
-    if(o.lat&&o.lon&&o.from&&o.to){$("#where").value=o.q||"";$("#from").value=o.from;$("#to").value=o.to;if(S.profile){run({name:o.q,short:o.q,lat:+o.lat,lon:+o.lon},o.from,o.to)}else show("profile")}
+    if(o.lat&&o.lon&&o.from&&o.to){$("#where").value=o.q||"";$("#from").value=o.from;$("#to").value=o.to;if(!S.profile)show("profile");}
   }else if(h==="profile"||!S.profile){show("profile")}
   else if(h==="about")show("about");
 }
