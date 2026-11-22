@@ -280,10 +280,12 @@ function build(){
   var p=S.profile,plan=PLANS[p.pace],center=[S.trip.lat,S.trip.lon],used=new Set(S.blocked),items=[];
   S.cands.forEach(function(c){if(c.b0==null)c.b0=c.score;c.score=c.b0+boost(c,p)});
   var slots=plan.slots.slice();if(p.pace!=="verychill")slots.push(["sec",p.pace==="rushed"?"20:00":"17:30"]);
+  var nA=S.cands.filter(function(c){return !c.date&&c.cat!=="food"&&!used.has(c.id)}).length,nF=S.cands.filter(function(c){return !c.date&&c.cat==="food"&&!used.has(c.id)}).length,qA=Math.ceil(nA/S.days.length),qF=Math.ceil(nF/S.days.length);
   S.days.forEach(function(d,di){
-    var wx=S.wx[d],rain=wx&&wx.pop>=60,prev=center,cc={},last=null,day=[];
+    var wx=S.wx[d],rain=wx&&wx.pop>=60,prev=center,cc={},last=null,day=[],gA=0,gF=0;
     slots.forEach(function(sl){
-      var kind=sl[0],pool=S.cands.filter(function(c){
+      var kind=sl[0];if(kind==="food"?gF>=qF&&nF>0:gA>=qA&&nA>0&&!S.cands.some(function(c){return c.date===d&&!used.has(c.id)}))return;
+      var pool=S.cands.filter(function(c){
         if(used.has(c.id))return false;if(c.date&&c.date!==d)return false;
         if(kind==="food")return c.cat==="food"&&!c.date;
         if(kind==="eve")return c.cat!=="food";
@@ -297,6 +299,7 @@ function build(){
       });
       if(!best)return;
       used.add(best.id);cc[best.cat]=(cc[best.cat]||0)+1;last=best;
+      if(best.cat==="food")gF++;else if(!best.date)gA++;
       var it=Object.assign({},best,{time:best.evtime||sl[1],dayIdx:di,day:d,distPrev:hav(prev[0],prev[1],best.lat,best.lon),surprise:kind==="sec"});
       day.push(it);prev=[best.lat,best.lon];
     });
