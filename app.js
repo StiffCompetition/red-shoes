@@ -178,8 +178,21 @@ function wantsL(cats){return (cats||[]).some(function(d){return d.k==="lgbtq"})}
 function isGay(t,n){t=t||{};return t.gay==="yes"||/^(primary|only|yes)$/.test(t.lgbtq||"")||/\b(gay|lgbt|lgbtq|queer|bear bar|gaysauna)\b/i.test(n||"")}
 function norm(el,cats){
   var t=el.tags||{};if(isBad(t))return null;
-  if(!wantsL(cats)&&isGay(t,t.name))return null;
+  var gay=isGay(t,t.name),I=(S.profile&&S.profile.interests)||[],wantL=I.indexOf("lgbtq")>-1;
+  if(gay&&!wantL)return null;
   var c=classify(t,cats);if(!c)return null;
+  if(wantL&&!gay&&/^(pub|bar|nightclub|biergarten|brewery|beerbar)$/.test(c.type))return null;
+  if(wantL){
+    var O=I.filter(function(k){return /^(wellness|beer|music|food|shopping|active)$/.test(k)});
+    if(O.length){
+      if(gay){
+        var oc=cats.filter(function(d){return d.k!=="lgbtq"&&O.indexOf(d.k)>-1}),c2=classify(t,oc);
+        if(!c2&&O.indexOf("beer")>-1&&/^(bar|pub|biergarten|nightclub)$/.test(t.amenity||""))c2={cat:"beer",type:"beerbar"};
+        if(!c2&&O.indexOf("music")>-1&&/^(nightclub|bar)$/.test(t.amenity||""))c2={cat:"music",type:"nightclub"};
+        if(!c2)return null;c=c2;
+      }else if(/^(wellness|beer|music|food|shopping|active)$/.test(c.cat))return null;
+    }
+  }
   var lat=el.lat!=null?el.lat:(el.center&&el.center.lat),lon=el.lon!=null?el.lon:(el.center&&el.center.lon);if(lat==null)return null;
   return {id:el.type+"/"+el.id,name:t["name:"+lang]||t.name,lat:lat,lon:lon,cat:c.cat,type:c.type,tags:t,src:"osm",url:t.website||t["contact:website"]||""};
 }
@@ -196,9 +209,9 @@ function scoreOf(c,p){
   if(p.dislikes.indexOf("loud")>-1&&/^(nightclub|pub|biergarten)$/.test(c.type))s-=3;
   return s;
 }
-function hasCache(lat,lon,p){try{var c=JSON.parse(localStorage.getItem("rs_pl2_"+lat.toFixed(2)+"_"+lon.toFixed(2)+"_"+p.interests.slice().sort().join("")+"")||"null");return !!(c&&Date.now()-c.t<864e5&&c.d.length)}catch(e){return false}}
+function hasCache(lat,lon,p){try{var c=JSON.parse(localStorage.getItem("rs_pl3_"+lat.toFixed(2)+"_"+lon.toFixed(2)+"_"+p.interests.slice().sort().join("")+"")||"null");return !!(c&&Date.now()-c.t<864e5&&c.d.length)}catch(e){return false}}
 async function loadPlaces(lat,lon,p){
-  lat=+lat;lon=+lon;var ck="rs_pl2_"+lat.toFixed(2)+"_"+lon.toFixed(2)+"_"+p.interests.slice().sort().join("");
+  lat=+lat;lon=+lon;var ck="rs_pl3_"+lat.toFixed(2)+"_"+lon.toFixed(2)+"_"+p.interests.slice().sort().join("");
   try{var c=JSON.parse(localStorage.getItem(ck)||"null");if(c&&Date.now()-c.t<864e5&&c.d.length)return c.d.map(function(x){x.score=scoreOf(x,p)+(x.cat==="food"&&p.interests.indexOf("food")>-1?1:0);return x})}catch(e){}
   var res=await loadPlacesLive(lat,lon,p);
   try{localStorage.setItem(ck,JSON.stringify({t:Date.now(),d:res}))}catch(e){}
@@ -369,6 +382,7 @@ async function loadPhoton(lat,lon,p){
   try{
     var cats=INTERESTS.filter(function(d){return p.interests.indexOf(d.k)>-1||d.k==="food"});
     var terms=[];cats.forEach(function(d){(PQ[d.k]||[]).forEach(function(q){terms.push([d.k,q])})});
+    if(p.interests.indexOf("lgbtq")>-1){var X={wellness:["gay sauna","gay spa"],music:["gay club"],food:["gay restaurant"],shopping:["gay shop"]};p.interests.forEach(function(k){(X[k]||[]).forEach(function(q){terms.push(["lgbtq",q])})})}
     var res=await Promise.all(terms.slice(0,10).map(function(tq){
       var ctl=new AbortController(),tm=setTimeout(function(){ctl.abort()},8000);
       return fetch("https://photon.komoot.io/api/?limit=15&lat="+lat+"&lon="+lon+"&q="+encodeURIComponent(tq[1]),{signal:ctl.signal}).then(function(r){clearTimeout(tm);return r.ok?r.json():{features:[]}}).then(function(j){return {k:tq[0],f:j.features||[]}},function(){clearTimeout(tm);return {k:tq[0],f:[]}});
@@ -380,6 +394,7 @@ async function loadPhoton(lat,lon,p){
       var t={name:pr.name},v=pr.osm_value;t[pr.osm_key]=v;
       if(x.k==="beer"&&/^(pub|bar|brewery|biergarten|restaurant|cafe|nightclub)$/.test(v))t.craft=v==="brewery"?"brewery":"beer";
       if(x.k==="lgbtq"&&/^(bar|pub|nightclub|club|cafe|restaurant)$/.test(v))t.lgbtq="primary";
+      else if(x.k==="lgbtq"&&isGay({},pr.name))t.lgbtq="primary";
       var c=norm({type:pr.osm_type==="N"?"node":pr.osm_type==="W"?"way":"relation",id:pr.osm_id,lat:g[1],lon:g[0],tags:t},cats);
       if(c&&!seen[c.id]){seen[c.id]=1;c.src="photon";c.score=scoreOf(c,p)+(c.cat==="food"&&p.interests.indexOf("food")>-1?1:0);out.push(c)}
     })});
