@@ -67,7 +67,8 @@ function renderAbout(){$("#about").innerHTML="<h1>"+esc(T("about_h"))+"</h1><p><
 
 /* ---------- profile wizard ---------- */
 function newDraft(){var p=S.profile;var d=p?JSON.parse(JSON.stringify(p)):{interests:[],pace:"balanced",budget:["free","mid"],dislikes:[]};d.fav=d.fav||[];d.more=d.more||{};d.name=d.name||"";d.sub=d.sub||[];d.extra=d.extra||"";return d}
-var SUBS={wellness:["spa","sauna","hot_spring","public_bath"],beer:["brewery","beerbar"],music:["music_venue","nightclub","concert_hall"],history:["museum","gallery","monument","castle"],nature:["park","garden","waterfall","beach","peak"]};
+var SUBS={music:["music_venue","nightclub","concert_hall"],history:["museum","gallery","monument","castle"],nature:["park","garden","waterfall","beach","peak"],food:["restaurant","cafe","food_court"],beer:["brewery","beerbar"],lgbtq:["gay_bar","gay_club","gay_sauna","gay_cafe"],secrets:["artwork","ruins","tunnel","water_tower","windmill","bunker","tomb"],photo:["viewpoint","attraction","tower","lighthouse"],active:["sports_centre","stadium","water_park","ice_rink","golf_course"],shopping:["marketplace","mall","department_store"],wellness:["spa","sauna","hot_spring","public_bath"]};
+function kindL(t){t=t||{};var a=t.amenity||"",l=t.leisure||"";if(/^(bar|pub|biergarten)$/.test(a))return "gay_bar";if(a==="nightclub"||l==="nightclub")return "gay_club";if(/^(sauna|spa)$/.test(l)||a==="spa"||t.shop==="massage")return "gay_sauna";if(/^(cafe|restaurant|fast_food)$/.test(a))return "gay_cafe";return "gay_other"}
 function subOK(cat,type){var o=SUBS[cat],sp=(S.profile&&S.profile.sub)||[];if(!o)return true;var sel=sp.filter(function(x){return o.indexOf(x)>-1});return !sel.length||sel.indexOf(type)>-1}
 function subUI(d){
   var h="",rows=ORDER.filter(function(k){return SUBS[k]&&d.interests.indexOf(k)>-1});
@@ -199,11 +200,11 @@ function norm(el,cats){
         var oc=cats.filter(function(d){return d.k!=="lgbtq"&&O.indexOf(d.k)>-1}),c2=classify(t,oc);
         if(!c2&&O.indexOf("beer")>-1&&/^(bar|pub|biergarten|nightclub)$/.test(t.amenity||""))c2={cat:"beer",type:"beerbar"};
         if(!c2&&O.indexOf("music")>-1&&/^(nightclub|bar)$/.test(t.amenity||""))c2={cat:"music",type:"nightclub"};
-        if(!c2)return null;c=c2;
+        if(!c2||!subOK("lgbtq",kindL(t)))return null;c=c2;
       }else if(/^(wellness|beer|music|food|shopping|active)$/.test(c.cat))return null;
     }
   }
-  if(!subOK(c.cat,c.type))return null;
+  if(!subOK(c.cat,c.cat==="lgbtq"?kindL(t):c.type))return null;
   var lat=el.lat!=null?el.lat:(el.center&&el.center.lat),lon=el.lon!=null?el.lon:(el.center&&el.center.lon);if(lat==null)return null;
   return {id:el.type+"/"+el.id,name:t["name:"+lang]||t.name,lat:lat,lon:lon,cat:c.cat,type:c.type,tags:t,src:"osm",url:t.website||t["contact:website"]||""};
 }
