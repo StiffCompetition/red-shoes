@@ -226,23 +226,31 @@ async function loadPlaces(lat,lon,p){
   lat=+lat;lon=+lon;var ck="rs_pl4_"+lat.toFixed(2)+"_"+lon.toFixed(2)+"_"+p.interests.slice().sort().join("")+"_"+(p.sub||[]).slice().sort().join("")+"_"+(p.extra||"").toLowerCase();
   try{var c=JSON.parse(localStorage.getItem(ck)||"null");if(c&&Date.now()-c.t<864e5&&c.d.length)return c.d.map(function(x){x.score=scoreOf(x,p)+(x.cat==="food"&&p.interests.indexOf("food")>-1?1:0);return x})}catch(e){}
   var res=await loadPlacesLive(lat,lon,p);
-  try{localStorage.setItem(ck,JSON.stringify({t:Date.now(),d:res}))}catch(e){}
+  if(!res.partial&&res.length)try{localStorage.setItem(ck,JSON.stringify({t:Date.now(),d:res}))}catch(e){}
   return res;
 }
+var lateHook=null;
 async function loadPlacesLive(lat,lon,p){
   var want=INTERESTS.filter(function(d){return p.interests.indexOf(d.k)>-1&&d.k!=="food"});
-  var food=[IBYK.food],all=want.concat(food);
-  var out=[],r=5000;
-  for(var pass=0;pass<2;pass++){
-    var els=[];
-    var ab=await Promise.all([want.length?overpass(oq(lat,lon,r,want,500)):Promise.resolve([]),overpass(oq(lat,lon,r,food,250))]);
-    els=ab[0].concat(ab[1]);
-    out=[];var seen={};
-    els.forEach(function(el){var c=norm(el,all);if(c&&!seen[c.id]){seen[c.id]=1;out.push(c)}});
-    if(out.length>=40||pass===1)break;
-    r=14000;
+  var food=IBYK.food,all=want.concat([food]),groups=want.map(function(d){return [d]}).concat([[food]]);
+  var seen={},results=[],pending=groups.length,deadline=false,hook=lateHook;
+  function conv(els){var o=[];els.forEach(function(el){var c=norm(el,all);if(c&&!seen[c.id]){seen[c.id]=1;c.score=scoreOf(c,p)+(c.cat==="food"&&p.interests.indexOf("food")>-1?1:0);o.push(c)}});return o}
+  function q(g){return overpass(oq(lat,lon,8000,g,g[0]===food?250:300))}
+  var ps=groups.map(function(g){
+    return q(g).catch(function(){return sleep(2500).then(function(){return q(g)})}).catch(function(){return sleep(5000).then(function(){return q(g)})}).then(function(els){
+      var c=conv(els);pending--;
+      if(deadline){if(hook&&hook===lateHook&&c.length)hook(c)}else results=results.concat(c);
+      return true;
+    },function(){pending--;return false});
+  });
+  await Promise.race([Promise.all(ps),sleep(24000)]);
+  if(!results.length){
+    var first=new Promise(function(res){ps.forEach(function(pr){pr.then(function(ok){if(ok)res("ok")})})});
+    var w=await Promise.race([Promise.all(ps).then(function(a){return a.some(Boolean)?"ok":"fail"}),first]);
+    if(w==="fail")throw new Error("busy");
   }
-  out.forEach(function(c){c.score=scoreOf(c,p)+(c.cat==="food"&&p.interests.indexOf("food")>-1?1:0)});
+  deadline=true;
+  var out=results.slice();out.partial=pending>0;
   return out;
 }
 
@@ -455,6 +463,7 @@ async function run(place,from,to,quiet){
     S.trip=place;S.days=dayList(from,to);S.blocked=new Set();S.sel="all";
     map.setView([place.lat,place.lon],13);
     var evP=loadEvents(place.lat,place.lon,from,to,S.profile),wxP=loadWeather(place.lat,place.lon,from,S.days[S.days.length-1]);
+    var myHook=function(c){if(lateHook!==myHook)return;S.cands=dedupe(S.cands.concat(c));build();renderOut();drawMap()};lateHook=myHook;
     var osmP=loadPlaces(place.lat,place.lon,S.profile).then(function(x){return {ok:true,v:x}},function(e){return {ok:false,e:e}});
     var wk=dedupe([].concat.apply([],await Promise.all([loadPhoton(place.lat,place.lon,S.profile),loadWiki(place.lat,place.lon,S.profile)])));
     var ev=await evP;S.wx=await wxP;
