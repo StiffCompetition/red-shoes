@@ -2,7 +2,7 @@ window.I18N={
 en:{
 tagline:"Your travel profile, done once. Instant agendas for every trip.",
 nav_plan:"Plan",nav_profile:"My profile",nav_about:"About",
-wiz_title:"Let's learn your travel style in 60 seconds",step:"Step {n} of 4",
+wiz_title:"What's your thing?",step:"Step {n} of 4",
 q1:"What excites you most?",q1h:"Pick one or as many as you like",
 q2:"How do you like to travel?",
 q3:"What's your budget per activity?",q3h:"Pick all that apply",
@@ -33,7 +33,7 @@ t:{lgbtq:"LGBTQ+ venue",brewery:"Craft brewery",beerbar:"Beer spot",artwork:"Str
 fr:{
 tagline:"Votre profil de voyage, une seule fois. Des programmes instantanés pour chaque voyage.",
 nav_plan:"Planifier",nav_profile:"Mon profil",nav_about:"À propos",
-wiz_title:"Découvrons votre style de voyage en 60 secondes",step:"Étape {n} sur 4",
+wiz_title:"C'est quoi, votre truc ?",step:"Étape {n} sur 4",
 q1:"Qu'est-ce qui vous passionne le plus ?",q1h:"Choisissez-en un ou autant que vous voulez",
 q2:"Comment aimez-vous voyager ?",
 q3:"Quel est votre budget par activité ?",q3h:"Choisissez tout ce qui convient",
@@ -64,7 +64,7 @@ t:{lgbtq:"Lieu LGBTQ+",brewery:"Brasserie artisanale",beerbar:"Spot bière",artw
 es:{
 tagline:"Tu perfil de viaje, una sola vez. Agendas instantáneas para cada viaje.",
 nav_plan:"Planear",nav_profile:"Mi perfil",nav_about:"Acerca de",
-wiz_title:"Conozcamos tu estilo de viaje en 60 segundos",step:"Paso {n} de 4",
+wiz_title:"¿Cuál es tu onda?",step:"Paso {n} de 4",
 q1:"¿Qué es lo que más te emociona?",q1h:"Elige uno o los que quieras",
 q2:"¿Cómo te gusta viajar?",
 q3:"¿Cuál es tu presupuesto por actividad?",q3h:"Elige todo lo que aplique",
